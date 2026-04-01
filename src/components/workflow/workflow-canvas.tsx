@@ -43,6 +43,11 @@ type BaseWorkflowData = {
   fileName?: string;
   previewUrl?: string | null;
   outputUrl?: string | null;
+  textValue?: string;
+  outputText?: string | null;
+  model?: string;
+  systemPrompt?: string;
+  userMessage?: string;
 };
 
 type WorkflowNodeType = Node<BaseWorkflowData>;
@@ -137,6 +142,75 @@ function FieldHandle({ id }: { id: string }) {
   );
 }
 
+function renderFormattedText(value: string) {
+  const lines = value.split(/\r?\n/);
+  const elements: React.ReactNode[] = [];
+  let paragraphBuffer: string[] = [];
+  let listBuffer: string[] = [];
+
+  const flushParagraph = () => {
+    if (paragraphBuffer.length === 0) return;
+
+    const text = paragraphBuffer.join(" ").trim();
+    if (text) {
+      elements.push(
+        <p key={`p-${elements.length}`} className="leading-6 text-zinc-100">
+          {cleanInlineMarkdown(text)}
+        </p>,
+      );
+    }
+
+    paragraphBuffer = [];
+  };
+
+  const flushList = () => {
+    if (listBuffer.length === 0) return;
+
+    elements.push(
+      <ul key={`ul-${elements.length}`} className="space-y-2 pl-5 text-zinc-200">
+        {listBuffer.map((item, index) => (
+          <li key={`${elements.length}-${index}`} className="list-disc leading-6 marker:text-[#7fb0ff]">
+            {cleanInlineMarkdown(item)}
+          </li>
+        ))}
+      </ul>,
+    );
+
+    listBuffer = [];
+  };
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+
+    if (!line) {
+      flushParagraph();
+      flushList();
+      continue;
+    }
+
+    if (/^[-*•]\s+/.test(line)) {
+      flushParagraph();
+      listBuffer.push(line.replace(/^[-*•]\s+/, ""));
+      continue;
+    }
+
+    flushList();
+    paragraphBuffer.push(line);
+  }
+
+  flushParagraph();
+  flushList();
+
+  return elements;
+}
+
+function cleanInlineMarkdown(value: string) {
+  return value
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/__(.*?)__/g, "$1")
+    .replace(/`([^`]+)`/g, "$1");
+}
+
 const inputClassName =
   "w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-[13px] text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-[#4e7dff]";
 
@@ -169,7 +243,8 @@ function useWorkflowNodeData(id: string) {
 }
 
 function TextNode({ id, data }: NodeProps<WorkflowNodeType>) {
-  const [value, setValue] = useState("Describe the scene you want to generate...");
+  const { updateNodeData } = useWorkflowNodeData(id);
+  const value = data.textValue ?? "Describe the scene you want to generate...";
 
   return (
     <NodeShell
@@ -184,7 +259,13 @@ function TextNode({ id, data }: NodeProps<WorkflowNodeType>) {
         <FieldLabel>Textarea</FieldLabel>
         <textarea
           value={value}
-          onChange={(event) => setValue(event.target.value)}
+          onChange={(event) => {
+            const nextValue = event.target.value;
+            updateNodeData({
+              textValue: nextValue,
+              outputText: nextValue,
+            });
+          }}
           className={`${inputClassName} mt-2 min-h-[110px] resize-none`}
         />
       </div>
@@ -400,8 +481,38 @@ function VideoUploadNode({ id, data }: NodeProps<WorkflowNodeType>) {
 }
 
 function LlmNode({ id, data }: NodeProps<WorkflowNodeType>) {
-  const [model, setModel] = useState("gpt-4.1-mini");
-  const [imageCount, setImageCount] = useState(0);
+  const { updateNodeData } = useWorkflowNodeData(id);
+  const [isRunning, setIsRunning] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const systemConnections = useNodeConnections({ handleType: "target", handleId: "system" });
+  const userConnections = useNodeConnections({ handleType: "target", handleId: "user" });
+  const imageConnections = useNodeConnections({ handleType: "target", handleId: "images" });
+  const connectedSourceIds = [
+    ...new Set(
+      [...systemConnections, ...userConnections, ...imageConnections].map(
+        (connection) => connection.source,
+      ),
+    ),
+  ];
+  const connectedNodes = useNodesData<WorkflowNodeType>(connectedSourceIds);
+  const model = data.model ?? "gpt-5.4-mini";
+  const manualSystemPrompt =
+    data.systemPrompt ?? "You are a creative workflow planner.";
+  const manualUserMessage =
+    data.userMessage ?? "Turn the uploaded input into a polished campaign-ready result.";
+  const connectedSystemPrompt =
+    connectedNodes.find((node) => systemConnections.some((connection) => connection.source === node.id))
+      ?.data.outputText ?? null;
+  const connectedUserMessage =
+    connectedNodes.find((node) => userConnections.some((connection) => connection.source === node.id))
+      ?.data.outputText ?? null;
+  const connectedImageUrls = connectedNodes
+    .filter((node) => imageConnections.some((connection) => connection.source === node.id))
+    .map((node) => node.data.outputUrl)
+    .filter((url): url is string => Boolean(url && url.startsWith("http")));
+  const effectiveSystemPrompt = connectedSystemPrompt ?? manualSystemPrompt;
+  const effectiveUserMessage = connectedUserMessage ?? manualUserMessage;
+  const outputText = data.outputText ?? null;
 
   return (
     <NodeShell
@@ -416,56 +527,144 @@ function LlmNode({ id, data }: NodeProps<WorkflowNodeType>) {
         <FieldLabel>Model</FieldLabel>
         <select
           value={model}
-          onChange={(event) => setModel(event.target.value)}
+          onChange={(event) =>
+            updateNodeData({
+              model: event.target.value,
+            })
+          }
           className={`${inputClassName} mt-2`}
         >
-          <option>gpt-4.1-mini</option>
-          <option>gpt-4.1</option>
-          <option>gpt-4o-mini</option>
-          <option>gemini-1.5-pro</option>
+          <option value="gpt-5.4-mini">gpt-5.4-mini</option>
+          <option value="gpt-4.1-mini">gpt-4.1-mini</option>
         </select>
       </div>
       <div className="relative">
         <FieldHandle id="system" />
         <FieldLabel>System prompt</FieldLabel>
         <textarea
+          value={effectiveSystemPrompt}
+          onChange={(event) =>
+            updateNodeData({
+              systemPrompt: event.target.value,
+            })
+          }
           className={`${inputClassName} mt-2 min-h-[80px] resize-none`}
-          defaultValue="You are a creative workflow planner."
+          disabled={Boolean(connectedSystemPrompt)}
         />
+        {connectedSystemPrompt ? (
+          <div className="mt-2 text-[12px] text-emerald-300">
+            Connected from text node output.
+          </div>
+        ) : null}
       </div>
       <div className="relative">
         <FieldHandle id="user" />
         <FieldLabel>User message</FieldLabel>
         <textarea
+          value={effectiveUserMessage}
+          onChange={(event) =>
+            updateNodeData({
+              userMessage: event.target.value,
+            })
+          }
           className={`${inputClassName} mt-2 min-h-[96px] resize-none`}
-          defaultValue="Turn the uploaded input into a polished campaign-ready result."
+          disabled={Boolean(connectedUserMessage)}
         />
+        {connectedUserMessage ? (
+          <div className="mt-2 text-[12px] text-emerald-300">
+            Connected from text node output.
+          </div>
+        ) : null}
       </div>
       <div className="relative">
         <FieldHandle id="images" />
         <FieldLabel>Images input</FieldLabel>
-        <label className="mt-2 flex cursor-pointer items-center justify-between rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-[13px] text-zinc-300">
-          <span>{imageCount} image(s) attached</span>
-          <input
-            type="file"
-            multiple
-            accept="image/*"
-            className="hidden"
-            onChange={(event) => setImageCount(event.target.files?.length ?? 0)}
-          />
-          <span className="rounded-lg bg-white/[0.05] px-2 py-1 text-[12px]">
-            Choose
-          </span>
-        </label>
+        <div className="mt-2 rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-[13px] text-zinc-300">
+          {connectedImageUrls.length} connected image(s)
+        </div>
+        {connectedImageUrls.length > 0 ? (
+          <div className="space-y-2">
+            {connectedImageUrls.map((url) => (
+              <div key={url} className="break-all text-[12px] text-emerald-300">
+                {url}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-[12px] text-zinc-500">
+            Connect one or more upload/crop/frame nodes here.
+          </div>
+        )}
         <div className="mt-2 text-[12px] text-zinc-500">
           Executes via Trigger.dev task
         </div>
+      </div>
+      <button
+        type="button"
+        disabled={isRunning}
+        onClick={async () => {
+          setIsRunning(true);
+          setError(null);
+
+          try {
+            const response = await fetch("/api/workflows/run-llm", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                model,
+                systemPrompt: effectiveSystemPrompt,
+                userMessage: effectiveUserMessage,
+                imageUrls: connectedImageUrls,
+              }),
+            });
+
+            const result = (await response.json()) as {
+              error?: string;
+              output?: string;
+            };
+
+            if (!response.ok || !result.output) {
+            throw new Error(result.error ?? "LLM task failed");
+          }
+
+          updateNodeData({
+            outputText: result.output,
+            });
+          } catch (runError) {
+            setError(runError instanceof Error ? runError.message : "LLM task failed");
+          } finally {
+            setIsRunning(false);
+          }
+        }}
+        className={actionButtonClassName}
+      >
+        {isRunning ? "Running..." : "Run LLM"}
+      </button>
+      {error ? (
+        <div className="rounded-xl border border-red-500/25 bg-red-500/10 px-3 py-2 text-[12px] text-red-200">
+          {error}
+        </div>
+      ) : null}
+      <div className="rounded-xl border border-white/8 bg-black/20 p-3">
+        <FieldLabel>Output</FieldLabel>
+        {outputText ? (
+          <div className="mt-3 space-y-3 rounded-2xl border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] p-4 text-[13px] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+            {renderFormattedText(outputText)}
+          </div>
+        ) : (
+          <div className="mt-2 text-[12px] text-zinc-500">
+            Azure OpenAI output will appear here after the Trigger.dev task finishes.
+          </div>
+        )}
       </div>
     </NodeShell>
   );
 }
 
 function CropNode({ id, data }: NodeProps<WorkflowNodeType>) {
+  const { updateNodeData } = useWorkflowNodeData(id);
   const incomingConnections = useNodeConnections({ handleType: "target", handleId: "input" });
   const sourceIds = incomingConnections.map((connection) => connection.source);
   const connectedNodes = useNodesData<WorkflowNodeType>(sourceIds);
@@ -581,6 +780,9 @@ function CropNode({ id, data }: NodeProps<WorkflowNodeType>) {
             }
 
             setOutputUrl(result.output);
+            updateNodeData({
+              outputUrl: result.output,
+            });
           } catch (runError) {
             setError(runError instanceof Error ? runError.message : "Crop task failed");
           } finally {
@@ -624,6 +826,7 @@ function CropNode({ id, data }: NodeProps<WorkflowNodeType>) {
 }
 
 function ExtractFrameNode({ id, data }: NodeProps<WorkflowNodeType>) {
+  const { updateNodeData } = useWorkflowNodeData(id);
   const incomingConnections = useNodeConnections({ handleType: "target", handleId: "input" });
   const sourceIds = incomingConnections.map((connection) => connection.source);
   const connectedNodes = useNodesData<WorkflowNodeType>(sourceIds);
@@ -709,6 +912,9 @@ function ExtractFrameNode({ id, data }: NodeProps<WorkflowNodeType>) {
             }
 
             setOutputUrl(result.output);
+            updateNodeData({
+              outputUrl: result.output,
+            });
           } catch (runError) {
             setError(
               runError instanceof Error ? runError.message : "Extract frame task failed",
@@ -836,6 +1042,7 @@ const initialEdges: Edge[] = [
     id: "text-llm",
     source: "text-1",
     target: "llm-1",
+    targetHandle: "user",
     type: "smoothstep",
     animated: true,
     style: { stroke: "#4e7dff", strokeWidth: 2 },
@@ -844,6 +1051,7 @@ const initialEdges: Edge[] = [
     id: "image-llm",
     source: "imageUpload-1",
     target: "llm-1",
+    targetHandle: "images",
     type: "smoothstep",
     animated: true,
     style: { stroke: "#4e7dff", strokeWidth: 2 },
