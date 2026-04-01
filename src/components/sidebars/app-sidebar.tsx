@@ -176,32 +176,18 @@ export function AppSidebar({ collapsed, onToggleCollapsed }: AppSidebarProps) {
 
       {!collapsed ? <div className="mt-14 px-4 text-[13px] font-medium tracking-[-0.02em] text-zinc-500">Sessions</div> : null}
 
-      <div
-        className={[
-          "mt-auto shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)]",
-          collapsed
-            ? "rounded-[20px] px-2 py-2"
-            : "mb-16 rounded-[20px] bg-[#0c0c0c] px-3 pb-3 pt-4 xl:mb-20",
-        ].join(" ")}
-      >
-        {!collapsed ? (
-          <>
-            <div className="px-1 text-[15px] font-medium tracking-[-0.03em] text-zinc-100">
-              Earn 3,000 Credits
-            </div>
-            <button className="mt-3 h-10 w-full rounded-[12px] bg-[linear-gradient(90deg,#d6e5ff_0%,#8fc2ff_38%,#3267ff_100%)] px-4 text-left text-[15px] font-medium tracking-[-0.03em] text-[#27478a] shadow-[0_10px_24px_rgba(49,102,255,0.32)]">
-              Upgrade
-            </button>
-          </>
-        ) : (
-          <button
-            className="flex h-12 w-full items-center justify-center rounded-2xl bg-[linear-gradient(180deg,#dbe4ff_0%,#5a8eff_100%)] text-[13px] font-semibold text-[#234388]"
-            title="Upgrade"
-          >
-            Up
+      {!collapsed ? (
+        <div className="mt-auto mb-16 rounded-[20px] bg-[#0c0c0c] px-3 pb-3 pt-4 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)] xl:mb-20">
+          <div className="px-1 text-[15px] font-medium tracking-[-0.03em] text-zinc-100">
+            Earn 3,000 Credits
+          </div>
+          <button className="mt-3 h-10 w-full rounded-[12px] bg-[linear-gradient(90deg,#d6e5ff_0%,#8fc2ff_38%,#3267ff_100%)] px-4 text-left text-[15px] font-medium tracking-[-0.03em] text-[#27478a] shadow-[0_10px_24px_rgba(49,102,255,0.32)]">
+            Upgrade
           </button>
-        )}
-      </div>
+        </div>
+      ) : (
+        <div className="mt-auto" />
+      )}
 
       {!collapsed && workspaceMenuOpen ? (
         <div className="absolute bottom-20 left-3 right-3 z-20 rounded-[22px] border border-white/[0.06] bg-[#1b1b1b] p-4 shadow-[0_20px_40px_rgba(0,0,0,0.45)]">
@@ -289,37 +275,32 @@ export function AppSidebar({ collapsed, onToggleCollapsed }: AppSidebarProps) {
         </div>
       ) : null}
 
-      <button
-        type="button"
-        onClick={() => setWorkspaceMenuOpen((value) => !value)}
-        className={[
-          "mt-3 flex items-center rounded-[16px] border border-white/[0.06] bg-[#1b1b1b] py-2 transition-colors hover:bg-[#222222]",
-          collapsed ? "justify-center px-0" : "gap-3 px-3",
-        ].join(" ")}
-      >
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] border border-white/[0.06] bg-[#232323] text-[17px] font-medium text-[#f0d2b4]">
-          C
-        </div>
-        {!collapsed ? (
-          <>
-            <div className="min-w-0 flex-1 text-left">
-              <div className="truncate text-[15px] font-medium tracking-[-0.03em] text-zinc-100">
-                convincingclassicda...
-              </div>
-              <div className="text-[14px] text-zinc-500">Free</div>
+      {!collapsed ? (
+        <button
+          type="button"
+          onClick={() => setWorkspaceMenuOpen((value) => !value)}
+          className="mt-3 flex items-center gap-3 rounded-[16px] border border-white/[0.06] bg-[#1b1b1b] px-3 py-2 transition-colors hover:bg-[#222222]"
+        >
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] border border-white/[0.06] bg-[#232323] text-[17px] font-medium text-[#f0d2b4]">
+            C
+          </div>
+          <div className="min-w-0 flex-1 text-left">
+            <div className="truncate text-[15px] font-medium tracking-[-0.03em] text-zinc-100">
+              convincingclassicda...
             </div>
-            <span className="flex h-8 w-8 items-center justify-center text-zinc-500">
-              <ChevronUp
-                className={[
-                  "h-4 w-4 transition-transform",
-                  workspaceMenuOpen ? "rotate-0" : "rotate-180",
-                ].join(" ")}
-                strokeWidth={2}
-              />
-            </span>
-          </>
-        ) : null}
-      </button>
+            <div className="text-[14px] text-zinc-500">Free</div>
+          </div>
+          <span className="flex h-8 w-8 items-center justify-center text-zinc-500">
+            <ChevronUp
+              className={[
+                "h-4 w-4 transition-transform",
+                workspaceMenuOpen ? "rotate-0" : "rotate-180",
+              ].join(" ")}
+              strokeWidth={2}
+            />
+          </span>
+        </button>
+      ) : null}
     </aside>
   );
 }
