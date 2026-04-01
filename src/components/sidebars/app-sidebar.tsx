@@ -7,6 +7,9 @@ import {
   CirclePlus,
   ChevronDown,
   ChevronUp,
+  Crop,
+  FileImage,
+  FileText,
   Folder,
   Home as HomeIcon,
   ImageIcon,
@@ -18,6 +21,7 @@ import {
   Video,
   WandSparkles,
 } from "lucide-react";
+import type { WorkflowNodeKind } from "@/components/workflow/workflow-builder-context";
 
 const primaryItems = [
   { label: "Home", icon: HomeIcon, active: true },
@@ -35,9 +39,24 @@ const toolItems = [
   { label: "Edit", icon: SquarePen, accent: "bg-violet-400" },
 ];
 
+const quickAccessItems: Array<{
+  label: string;
+  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+  accent: string;
+  kind: WorkflowNodeKind;
+}> = [
+  { label: "Text", icon: FileText, accent: "bg-[#1f67ff]", kind: "text" },
+  { label: "Image", icon: FileImage, accent: "bg-[#0bbf72]", kind: "imageUpload" },
+  { label: "Video", icon: Video, accent: "bg-[#ffb000]", kind: "videoUpload" },
+  { label: "LLM", icon: Sparkles, accent: "bg-[#8a5cff]", kind: "llm" },
+  { label: "Crop", icon: Crop, accent: "bg-[#ff6b35]", kind: "crop" },
+  { label: "Extract", icon: PanelsTopLeft, accent: "bg-[#00b6ff]", kind: "extractFrame" },
+];
+
 type AppSidebarProps = {
   collapsed: boolean;
   onToggleCollapsed: () => void;
+  onQuickAddNode?: (kind: WorkflowNodeKind) => void;
 };
 
 type SidebarButtonProps = {
@@ -91,7 +110,11 @@ function SidebarButton({
   );
 }
 
-export function AppSidebar({ collapsed, onToggleCollapsed }: AppSidebarProps) {
+export function AppSidebar({
+  collapsed,
+  onToggleCollapsed,
+  onQuickAddNode,
+}: AppSidebarProps) {
   const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);
 
   return (
@@ -143,6 +166,48 @@ export function AppSidebar({ collapsed, onToggleCollapsed }: AppSidebarProps) {
           />
         ))}
       </nav>
+
+      <div className={collapsed ? "mt-8" : "mt-10"}>
+        {!collapsed ? (
+          <div className="px-4 text-[13px] font-medium tracking-[-0.02em] text-zinc-500">
+            Quick Access
+          </div>
+        ) : null}
+
+        <div className={collapsed ? "mt-2 space-y-1.5" : "mt-4 grid grid-cols-2 gap-2"}>
+          {quickAccessItems.map(({ label, icon: Icon, accent, kind }) => (
+            <button
+              key={label}
+              type="button"
+              onClick={() => onQuickAddNode?.(kind)}
+              className={[
+                "transition-colors hover:bg-white/[0.05]",
+                collapsed
+                  ? "flex h-10 w-full items-center justify-center rounded-xl"
+                  : "flex items-center gap-2 rounded-[16px] border border-white/[0.05] bg-[#111111] px-3 py-3 text-left",
+              ].join(" ")}
+              title={collapsed ? `${label} node` : undefined}
+            >
+              <span
+                className={[
+                  "flex shrink-0 items-center justify-center text-white",
+                  collapsed ? `h-6 w-6 rounded-[7px] ${accent}` : `h-7 w-7 rounded-xl ${accent}`,
+                ].join(" ")}
+              >
+                <Icon
+                  className={collapsed ? "h-3.5 w-3.5" : "h-4 w-4"}
+                  strokeWidth={2.1}
+                />
+              </span>
+              {!collapsed ? (
+                <span className="text-[13px] font-semibold tracking-[-0.03em] text-zinc-100">
+                  {label}
+                </span>
+              ) : null}
+            </button>
+          ))}
+        </div>
+      </div>
 
       <div className={collapsed ? "mt-10" : "mt-14"}>
         {!collapsed ? (

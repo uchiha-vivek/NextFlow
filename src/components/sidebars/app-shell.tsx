@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import { AppSidebar } from "./app-sidebar";
+import type { WorkflowNodeKind } from "@/components/workflow/workflow-builder-context";
 
 const SIDEBAR_EXPANDED_COL = "272px";
 const SIDEBAR_COLLAPSED_COL = "44px";
 
 type AppShellProps = {
   children: React.ReactNode;
+  onQuickAddNode?: (kind: WorkflowNodeKind) => void;
 };
 
 /**
@@ -15,7 +17,7 @@ type AppShellProps = {
  * @param props - React children rendered beside the sidebar.
  * @returns Grid layout wrapping sidebar and main content.
  */
-export function AppShell({ children }: AppShellProps) {
+export function AppShell({ children, onQuickAddNode }: AppShellProps) {
   const [collapsed, setCollapsed] = useState(false);
 
   return (
@@ -31,6 +33,7 @@ export function AppShell({ children }: AppShellProps) {
         <AppSidebar
           collapsed={collapsed}
           onToggleCollapsed={() => setCollapsed((value) => !value)}
+          onQuickAddNode={onQuickAddNode}
         />
       </div>
       <div className="min-w-0 xl:h-screen xl:overflow-y-auto">{children}</div>
