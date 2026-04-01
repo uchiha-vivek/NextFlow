@@ -4,7 +4,7 @@ import { useState } from "react";
 import { AppSidebar } from "./app-sidebar";
 
 const SIDEBAR_EXPANDED_COL = "272px";
-const SIDEBAR_COLLAPSED_COL = "56px";
+const SIDEBAR_COLLAPSED_COL = "44px";
 
 type AppShellProps = {
   children: React.ReactNode;

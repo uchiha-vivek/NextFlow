@@ -144,7 +144,7 @@ export function AppSidebar({ collapsed, onToggleCollapsed }: AppSidebarProps) {
         ))}
       </nav>
 
-      <div className="mt-14">
+      <div className={collapsed ? "mt-10" : "mt-14"}>
         {!collapsed ? (
           <div className="px-4 text-[13px] font-medium tracking-[-0.02em] text-zinc-500">Tools</div>
         ) : null}
@@ -160,17 +160,14 @@ export function AppSidebar({ collapsed, onToggleCollapsed }: AppSidebarProps) {
             />
           ))}
 
-          <button
-            className={[
-              "flex w-full items-center text-left text-[15px] font-medium tracking-[-0.028em] transition-colors",
-              collapsed
-                ? "h-10 justify-center rounded-xl bg-[linear-gradient(180deg,#dbe4ff_0%,#5a8eff_100%)] px-0 text-[#234388]"
-                : "h-11 gap-3 rounded-[14px] bg-[linear-gradient(90deg,#d6e5ff_0%,#8fc2ff_38%,#3267ff_100%)] px-4 text-[#27478a] shadow-[0_10px_24px_rgba(49,102,255,0.22)]",
-            ].join(" ")}
-            title="Upgrade"
-          >
-            {!collapsed ? <span className="truncate">Upgrade</span> : <span className="text-[13px] font-semibold">Up</span>}
-          </button>
+          {!collapsed ? (
+            <button
+              className="flex h-11 w-full items-center gap-3 rounded-[14px] bg-[linear-gradient(90deg,#d6e5ff_0%,#8fc2ff_38%,#3267ff_100%)] px-4 text-left text-[15px] font-medium tracking-[-0.028em] text-[#27478a] shadow-[0_10px_24px_rgba(49,102,255,0.22)] transition-colors"
+              title="Upgrade"
+            >
+              <span className="truncate">Upgrade</span>
+            </button>
+          ) : null}
         </div>
       </div>
 
@@ -185,9 +182,7 @@ export function AppSidebar({ collapsed, onToggleCollapsed }: AppSidebarProps) {
             Upgrade
           </button>
         </div>
-      ) : (
-        <div className="mt-auto" />
-      )}
+      ) : <div className="mt-auto" />}
 
       {!collapsed && workspaceMenuOpen ? (
         <div className="absolute bottom-20 left-3 right-3 z-20 rounded-[22px] border border-white/[0.06] bg-[#1b1b1b] p-4 shadow-[0_20px_40px_rgba(0,0,0,0.45)]">
@@ -300,7 +295,13 @@ export function AppSidebar({ collapsed, onToggleCollapsed }: AppSidebarProps) {
             />
           </span>
         </button>
-      ) : null}
+      ) : (
+        <div className="mt-3 flex justify-center">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full border border-white/[0.06] bg-[#1b1b1b] text-[14px] font-medium text-[#f0d2b4]">
+            C
+          </div>
+        </div>
+      )}
     </aside>
   );
 }
