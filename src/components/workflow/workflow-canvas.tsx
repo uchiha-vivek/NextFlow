@@ -3,13 +3,17 @@
 import {
   Background,
   BackgroundVariant,
+  ConnectionLineType,
   Handle,
   MiniMap,
+  MarkerType,
   Position,
   ReactFlow,
   ReactFlowProvider,
   addEdge,
   useEdgesState,
+  useNodeConnections,
+  useNodesData,
   useNodesState,
   useReactFlow,
 } from "@xyflow/react";
@@ -36,6 +40,14 @@ type BaseWorkflowData = {
   title: string;
   accent: string;
   kind: WorkflowNodeKind;
+  fileName?: string;
+  previewUrl?: string | null;
+  outputUrl?: string | null;
+  textValue?: string;
+  outputText?: string | null;
+  model?: string;
+  systemPrompt?: string;
+  userMessage?: string;
 };
 
 type WorkflowNodeType = Node<BaseWorkflowData>;
@@ -64,8 +76,9 @@ function NodeShell({
       {input ? (
         <Handle
           type="target"
+          id="input"
           position={Position.Left}
-          className="!h-3 !w-3 !border-2 !border-[#0f1012] !bg-[#6ea5ff]"
+          className="!h-4 !w-4 !border-2 !border-[#0f1012] !bg-[#7fb0ff] !shadow-[0_0_0_4px_rgba(78,125,255,0.18)]"
         />
       ) : null}
       <div className="mb-4 flex items-center gap-3">
@@ -101,8 +114,9 @@ function NodeShell({
         </div>
         <Handle
           type="source"
+          id="output"
           position={Position.Right}
-          className="!static !h-3 !w-3 !translate-x-0 !border-2 !border-[#0f1012] !bg-[#6ea5ff]"
+          className="!static !h-4 !w-4 !translate-x-0 !border-2 !border-[#0f1012] !bg-[#7fb0ff] !shadow-[0_0_0_4px_rgba(78,125,255,0.18)]"
         />
       </div>
     </div>
@@ -117,11 +131,120 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
+function FieldHandle({ id }: { id: string }) {
+  return (
+    <Handle
+      id={id}
+      type="target"
+      position={Position.Left}
+      className="!left-[-22px] !top-1/2 !h-4 !w-4 !-translate-y-1/2 !border-2 !border-[#0f1012] !bg-[#7fb0ff] !shadow-[0_0_0_4px_rgba(78,125,255,0.18)]"
+    />
+  );
+}
+
+function renderFormattedText(value: string) {
+  const lines = value.split(/\r?\n/);
+  const elements: React.ReactNode[] = [];
+  let paragraphBuffer: string[] = [];
+  let listBuffer: string[] = [];
+
+  const flushParagraph = () => {
+    if (paragraphBuffer.length === 0) return;
+
+    const text = paragraphBuffer.join(" ").trim();
+    if (text) {
+      elements.push(
+        <p key={`p-${elements.length}`} className="leading-6 text-zinc-100">
+          {cleanInlineMarkdown(text)}
+        </p>,
+      );
+    }
+
+    paragraphBuffer = [];
+  };
+
+  const flushList = () => {
+    if (listBuffer.length === 0) return;
+
+    elements.push(
+      <ul key={`ul-${elements.length}`} className="space-y-2 pl-5 text-zinc-200">
+        {listBuffer.map((item, index) => (
+          <li key={`${elements.length}-${index}`} className="list-disc leading-6 marker:text-[#7fb0ff]">
+            {cleanInlineMarkdown(item)}
+          </li>
+        ))}
+      </ul>,
+    );
+
+    listBuffer = [];
+  };
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+
+    if (!line) {
+      flushParagraph();
+      flushList();
+      continue;
+    }
+
+    if (/^[-*•]\s+/.test(line)) {
+      flushParagraph();
+      listBuffer.push(line.replace(/^[-*•]\s+/, ""));
+      continue;
+    }
+
+    flushList();
+    paragraphBuffer.push(line);
+  }
+
+  flushParagraph();
+  flushList();
+
+  return elements;
+}
+
+function cleanInlineMarkdown(value: string) {
+  return value
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/__(.*?)__/g, "$1")
+    .replace(/`([^`]+)`/g, "$1");
+}
+
 const inputClassName =
   "w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-[13px] text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-[#4e7dff]";
 
+const actionButtonClassName =
+  "inline-flex h-10 items-center justify-center rounded-xl bg-[#4e7dff] px-4 text-[13px] font-semibold text-white transition-colors hover:bg-[#618cff] disabled:cursor-not-allowed disabled:bg-[#2b3c72] disabled:text-zinc-300";
+
+function useWorkflowNodeData(id: string) {
+  const reactFlow = useReactFlow<WorkflowNodeType, Edge>();
+
+  const updateNodeData = useCallback(
+    (patch: Partial<BaseWorkflowData>) => {
+      reactFlow.setNodes((current) =>
+        current.map((node) =>
+          node.id === id
+            ? {
+                ...node,
+                data: {
+                  ...node.data,
+                  ...patch,
+                },
+              }
+            : node,
+        ),
+      );
+    },
+    [id, reactFlow],
+  );
+
+  return { updateNodeData };
+}
+
 function TextNode({ id, data }: NodeProps<WorkflowNodeType>) {
-  const [value, setValue] = useState("Describe the scene you want to generate...");
+  const { updateNodeData } = useWorkflowNodeData(id);
+  const value = data.textValue ?? "Describe the scene you want to generate...";
 
   return (
     <NodeShell
@@ -136,7 +259,13 @@ function TextNode({ id, data }: NodeProps<WorkflowNodeType>) {
         <FieldLabel>Textarea</FieldLabel>
         <textarea
           value={value}
-          onChange={(event) => setValue(event.target.value)}
+          onChange={(event) => {
+            const nextValue = event.target.value;
+            updateNodeData({
+              textValue: nextValue,
+              outputText: nextValue,
+            });
+          }}
           className={`${inputClassName} mt-2 min-h-[110px] resize-none`}
         />
       </div>
@@ -145,8 +274,12 @@ function TextNode({ id, data }: NodeProps<WorkflowNodeType>) {
 }
 
 function ImageUploadNode({ id, data }: NodeProps<WorkflowNodeType>) {
-  const [preview, setPreview] = useState<string | null>(null);
-  const [fileName, setFileName] = useState("No image selected");
+  const { updateNodeData } = useWorkflowNodeData(id);
+  const [isUploading, setIsUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const preview = data.previewUrl ?? null;
+  const fileName = data.fileName ?? "No image selected";
+  const outputUrl = data.outputUrl ?? null;
 
   return (
     <NodeShell
@@ -163,14 +296,53 @@ function ImageUploadNode({ id, data }: NodeProps<WorkflowNodeType>) {
             type="file"
             accept=".jpg,.jpeg,.png,.webp,.gif,image/jpeg,image/png,image/webp,image/gif"
             className="hidden"
-            onChange={(event) => {
+            onChange={async (event) => {
               const file = event.target.files?.[0];
               if (!file) return;
-              setFileName(file.name);
-              setPreview(URL.createObjectURL(file));
+
+              const previewUrl = URL.createObjectURL(file);
+              updateNodeData({
+                fileName: file.name,
+                previewUrl,
+                outputUrl: previewUrl,
+              });
+              setIsUploading(true);
+              setError(null);
+
+              try {
+                const formData = new FormData();
+                formData.append("file", file);
+
+                const response = await fetch("/api/uploads/image", {
+                  method: "POST",
+                  body: formData,
+                });
+
+                const result = (await response.json()) as {
+                  error?: string;
+                  outputUrl?: string;
+                  fileName?: string;
+                };
+
+                if (!response.ok || !result.outputUrl) {
+                  throw new Error(result.error ?? "Image upload failed");
+                }
+
+                updateNodeData({
+                  fileName: result.fileName ?? file.name,
+                  previewUrl: result.outputUrl,
+                  outputUrl: result.outputUrl,
+                });
+              } catch (uploadError) {
+                setError(
+                  uploadError instanceof Error ? uploadError.message : "Image upload failed",
+                );
+              } finally {
+                setIsUploading(false);
+              }
             }}
           />
-          Upload image
+          {isUploading ? "Uploading..." : "Upload image"}
         </label>
       </div>
       <div className="rounded-xl border border-white/8 bg-black/20 p-3">
@@ -187,14 +359,31 @@ function ImageUploadNode({ id, data }: NodeProps<WorkflowNodeType>) {
             Preview after upload
           </div>
         )}
+        <div className="mt-3 text-[12px] text-zinc-500">
+          {outputUrl?.startsWith("http")
+            ? "Transloadit URL ready for downstream nodes."
+            : "Select a file to upload it to Transloadit."}
+        </div>
+        {outputUrl ? (
+          <div className="mt-2 break-all text-[12px] text-zinc-400">{outputUrl}</div>
+        ) : null}
+        {error ? (
+          <div className="mt-3 rounded-lg border border-red-500/25 bg-red-500/10 px-3 py-2 text-[12px] text-red-200">
+            {error}
+          </div>
+        ) : null}
       </div>
     </NodeShell>
   );
 }
 
 function VideoUploadNode({ id, data }: NodeProps<WorkflowNodeType>) {
-  const [preview, setPreview] = useState<string | null>(null);
-  const [fileName, setFileName] = useState("No video selected");
+  const { updateNodeData } = useWorkflowNodeData(id);
+  const [isUploading, setIsUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const preview = data.previewUrl ?? null;
+  const fileName = data.fileName ?? "No video selected";
+  const outputUrl = data.outputUrl ?? null;
 
   return (
     <NodeShell
@@ -211,14 +400,53 @@ function VideoUploadNode({ id, data }: NodeProps<WorkflowNodeType>) {
             type="file"
             accept=".mp4,.mov,.webm,.m4v,video/mp4,video/quicktime,video/webm,x-m4v"
             className="hidden"
-            onChange={(event) => {
+            onChange={async (event) => {
               const file = event.target.files?.[0];
               if (!file) return;
-              setFileName(file.name);
-              setPreview(URL.createObjectURL(file));
+
+              const previewUrl = URL.createObjectURL(file);
+              updateNodeData({
+                fileName: file.name,
+                previewUrl,
+                outputUrl: previewUrl,
+              });
+              setIsUploading(true);
+              setError(null);
+
+              try {
+                const formData = new FormData();
+                formData.append("file", file);
+
+                const response = await fetch("/api/uploads/video", {
+                  method: "POST",
+                  body: formData,
+                });
+
+                const result = (await response.json()) as {
+                  error?: string;
+                  outputUrl?: string;
+                  fileName?: string;
+                };
+
+                if (!response.ok || !result.outputUrl) {
+                  throw new Error(result.error ?? "Video upload failed");
+                }
+
+                updateNodeData({
+                  fileName: result.fileName ?? file.name,
+                  previewUrl: result.outputUrl,
+                  outputUrl: result.outputUrl,
+                });
+              } catch (uploadError) {
+                setError(
+                  uploadError instanceof Error ? uploadError.message : "Video upload failed",
+                );
+              } finally {
+                setIsUploading(false);
+              }
             }}
           />
-          Upload video
+          {isUploading ? "Uploading..." : "Upload video"}
         </label>
       </div>
       <div className="rounded-xl border border-white/8 bg-black/20 p-3">
@@ -234,14 +462,57 @@ function VideoUploadNode({ id, data }: NodeProps<WorkflowNodeType>) {
             Video preview after upload
           </div>
         )}
+        <div className="mt-3 text-[12px] text-zinc-500">
+          {outputUrl?.startsWith("http")
+            ? "Transloadit URL ready for downstream nodes."
+            : "Select a file to upload it to Transloadit."}
+        </div>
+        {outputUrl ? (
+          <div className="mt-2 break-all text-[12px] text-zinc-400">{outputUrl}</div>
+        ) : null}
+        {error ? (
+          <div className="mt-3 rounded-lg border border-red-500/25 bg-red-500/10 px-3 py-2 text-[12px] text-red-200">
+            {error}
+          </div>
+        ) : null}
       </div>
     </NodeShell>
   );
 }
 
 function LlmNode({ id, data }: NodeProps<WorkflowNodeType>) {
-  const [model, setModel] = useState("gpt-4.1-mini");
-  const [imageCount, setImageCount] = useState(0);
+  const { updateNodeData } = useWorkflowNodeData(id);
+  const [isRunning, setIsRunning] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const systemConnections = useNodeConnections({ handleType: "target", handleId: "system" });
+  const userConnections = useNodeConnections({ handleType: "target", handleId: "user" });
+  const imageConnections = useNodeConnections({ handleType: "target", handleId: "images" });
+  const connectedSourceIds = [
+    ...new Set(
+      [...systemConnections, ...userConnections, ...imageConnections].map(
+        (connection) => connection.source,
+      ),
+    ),
+  ];
+  const connectedNodes = useNodesData<WorkflowNodeType>(connectedSourceIds);
+  const model = data.model ?? "gpt-5.4-mini";
+  const manualSystemPrompt =
+    data.systemPrompt ?? "You are a creative workflow planner.";
+  const manualUserMessage =
+    data.userMessage ?? "Turn the uploaded input into a polished campaign-ready result.";
+  const connectedSystemPrompt =
+    connectedNodes.find((node) => systemConnections.some((connection) => connection.source === node.id))
+      ?.data.outputText ?? null;
+  const connectedUserMessage =
+    connectedNodes.find((node) => userConnections.some((connection) => connection.source === node.id))
+      ?.data.outputText ?? null;
+  const connectedImageUrls = connectedNodes
+    .filter((node) => imageConnections.some((connection) => connection.source === node.id))
+    .map((node) => node.data.outputUrl)
+    .filter((url): url is string => Boolean(url && url.startsWith("http")));
+  const effectiveSystemPrompt = connectedSystemPrompt ?? manualSystemPrompt;
+  const effectiveUserMessage = connectedUserMessage ?? manualUserMessage;
+  const outputText = data.outputText ?? null;
 
   return (
     <NodeShell
@@ -249,125 +520,440 @@ function LlmNode({ id, data }: NodeProps<WorkflowNodeType>) {
       title={data.title}
       icon={Sparkles}
       outputLabel="LLM output"
+      input={false}
       nodeId={id}
     >
       <div>
         <FieldLabel>Model</FieldLabel>
         <select
           value={model}
-          onChange={(event) => setModel(event.target.value)}
+          onChange={(event) =>
+            updateNodeData({
+              model: event.target.value,
+            })
+          }
           className={`${inputClassName} mt-2`}
         >
-          <option>gpt-4.1-mini</option>
-          <option>gpt-4.1</option>
-          <option>gpt-4o-mini</option>
-          <option>gemini-1.5-pro</option>
+          <option value="gpt-5.4-mini">gpt-5.4-mini</option>
+          <option value="gpt-4.1-mini">gpt-4.1-mini</option>
         </select>
       </div>
-      <div>
+      <div className="relative">
+        <FieldHandle id="system" />
         <FieldLabel>System prompt</FieldLabel>
         <textarea
+          value={effectiveSystemPrompt}
+          onChange={(event) =>
+            updateNodeData({
+              systemPrompt: event.target.value,
+            })
+          }
           className={`${inputClassName} mt-2 min-h-[80px] resize-none`}
-          defaultValue="You are a creative workflow planner."
+          disabled={Boolean(connectedSystemPrompt)}
         />
+        {connectedSystemPrompt ? (
+          <div className="mt-2 text-[12px] text-emerald-300">
+            Connected from text node output.
+          </div>
+        ) : null}
       </div>
-      <div>
+      <div className="relative">
+        <FieldHandle id="user" />
         <FieldLabel>User message</FieldLabel>
         <textarea
+          value={effectiveUserMessage}
+          onChange={(event) =>
+            updateNodeData({
+              userMessage: event.target.value,
+            })
+          }
           className={`${inputClassName} mt-2 min-h-[96px] resize-none`}
-          defaultValue="Turn the uploaded input into a polished campaign-ready result."
+          disabled={Boolean(connectedUserMessage)}
         />
+        {connectedUserMessage ? (
+          <div className="mt-2 text-[12px] text-emerald-300">
+            Connected from text node output.
+          </div>
+        ) : null}
       </div>
-      <div>
+      <div className="relative">
+        <FieldHandle id="images" />
         <FieldLabel>Images input</FieldLabel>
-        <label className="mt-2 flex cursor-pointer items-center justify-between rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-[13px] text-zinc-300">
-          <span>{imageCount} image(s) attached</span>
-          <input
-            type="file"
-            multiple
-            accept="image/*"
-            className="hidden"
-            onChange={(event) => setImageCount(event.target.files?.length ?? 0)}
-          />
-          <span className="rounded-lg bg-white/[0.05] px-2 py-1 text-[12px]">
-            Choose
-          </span>
-        </label>
+        <div className="mt-2 rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-[13px] text-zinc-300">
+          {connectedImageUrls.length} connected image(s)
+        </div>
+        {connectedImageUrls.length > 0 ? (
+          <div className="space-y-2">
+            {connectedImageUrls.map((url) => (
+              <div key={url} className="break-all text-[12px] text-emerald-300">
+                {url}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-[12px] text-zinc-500">
+            Connect one or more upload/crop/frame nodes here.
+          </div>
+        )}
         <div className="mt-2 text-[12px] text-zinc-500">
           Executes via Trigger.dev task
         </div>
+      </div>
+      <button
+        type="button"
+        disabled={isRunning}
+        onClick={async () => {
+          setIsRunning(true);
+          setError(null);
+
+          try {
+            const response = await fetch("/api/workflows/run-llm", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                model,
+                systemPrompt: effectiveSystemPrompt,
+                userMessage: effectiveUserMessage,
+                imageUrls: connectedImageUrls,
+              }),
+            });
+
+            const result = (await response.json()) as {
+              error?: string;
+              output?: string;
+            };
+
+            if (!response.ok || !result.output) {
+            throw new Error(result.error ?? "LLM task failed");
+          }
+
+          updateNodeData({
+            outputText: result.output,
+            });
+          } catch (runError) {
+            setError(runError instanceof Error ? runError.message : "LLM task failed");
+          } finally {
+            setIsRunning(false);
+          }
+        }}
+        className={actionButtonClassName}
+      >
+        {isRunning ? "Running..." : "Run LLM"}
+      </button>
+      {error ? (
+        <div className="rounded-xl border border-red-500/25 bg-red-500/10 px-3 py-2 text-[12px] text-red-200">
+          {error}
+        </div>
+      ) : null}
+      <div className="rounded-xl border border-white/8 bg-black/20 p-3">
+        <FieldLabel>Output</FieldLabel>
+        {outputText ? (
+          <div className="mt-3 space-y-3 rounded-2xl border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] p-4 text-[13px] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+            {renderFormattedText(outputText)}
+          </div>
+        ) : (
+          <div className="mt-2 text-[12px] text-zinc-500">
+            Azure OpenAI output will appear here after the Trigger.dev task finishes.
+          </div>
+        )}
       </div>
     </NodeShell>
   );
 }
 
 function CropNode({ id, data }: NodeProps<WorkflowNodeType>) {
+  const { updateNodeData } = useWorkflowNodeData(id);
+  const incomingConnections = useNodeConnections({ handleType: "target", handleId: "input" });
+  const sourceIds = incomingConnections.map((connection) => connection.source);
+  const connectedNodes = useNodesData<WorkflowNodeType>(sourceIds);
+  const [imageUrl, setImageUrl] = useState("");
+  const [xPercent, setXPercent] = useState("0");
+  const [yPercent, setYPercent] = useState("0");
+  const [widthPercent, setWidthPercent] = useState("100");
+  const [heightPercent, setHeightPercent] = useState("100");
+  const [isRunning, setIsRunning] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [outputUrl, setOutputUrl] = useState<string | null>(null);
+  const connectedImageUrl =
+    connectedNodes.find((node) => node.data.kind === "imageUpload")?.data.outputUrl ?? null;
+  const effectiveImageUrl = connectedImageUrl ?? imageUrl;
+  const usesLocalBlobImage = effectiveImageUrl.startsWith("blob:");
+
   return (
     <NodeShell
       accent={data.accent}
       title={data.title}
       icon={Crop}
-      outputLabel="Cropped image"
+      outputLabel="output"
       nodeId={id}
     >
       <div>
-        <FieldLabel>Image input URL</FieldLabel>
+        <FieldLabel>image_url</FieldLabel>
         <input
+          value={effectiveImageUrl}
+          onChange={(event) => setImageUrl(event.target.value)}
           className={`${inputClassName} mt-2`}
-          placeholder="https://example.com/input-image.png"
+          placeholder="Required image URL (jpg, jpeg, png, webp, gif)"
+          disabled={Boolean(connectedImageUrl)}
         />
+        {connectedImageUrl ? (
+          <div className="mt-2 text-[12px] text-emerald-300">
+            Connected from upload node output.
+          </div>
+        ) : null}
       </div>
       <div className="grid grid-cols-2 gap-2">
         {[
-          ["X %", "10"],
-          ["Y %", "15"],
-          ["Width %", "65"],
-          ["Height %", "55"],
-        ].map(([label, value]) => (
+          {
+            label: "x_percent",
+            value: xPercent,
+            setValue: setXPercent,
+          },
+          {
+            label: "y_percent",
+            value: yPercent,
+            setValue: setYPercent,
+          },
+          {
+            label: "width_percent",
+            value: widthPercent,
+            setValue: setWidthPercent,
+          },
+          {
+            label: "height_percent",
+            value: heightPercent,
+            setValue: setHeightPercent,
+          },
+        ].map(({ label, value, setValue }) => (
           <div key={label}>
             <FieldLabel>{label}</FieldLabel>
-            <input className={`${inputClassName} mt-2`} defaultValue={value} />
+            <input
+              value={value}
+              onChange={(event) => setValue(event.target.value)}
+              className={`${inputClassName} mt-2`}
+            />
           </div>
         ))}
       </div>
-      <div className="text-[12px] text-zinc-500">
-        Executes via FFmpeg on Trigger.dev
+      <div className="rounded-xl border border-white/8 bg-black/20 p-3 text-[12px] leading-5 text-zinc-400">
+        <div>Provider: Internal (FFmpeg via Trigger.dev task)</div>
+        <div>Output: Cropped image URL (uploaded via Transloadit)</div>
+      </div>
+      <button
+        type="button"
+        disabled={isRunning}
+        onClick={async () => {
+          if (usesLocalBlobImage) {
+            setError(
+              "This image is still only a local browser preview (blob URL). Upload Image -> Crop will fully work after the upload node is wired to Transloadit and returns a public URL.",
+            );
+            return;
+          }
+
+          setIsRunning(true);
+          setError(null);
+
+          try {
+            const response = await fetch("/api/workflows/crop-image", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                image_url: effectiveImageUrl,
+                x_percent: xPercent,
+                y_percent: yPercent,
+                width_percent: widthPercent,
+                height_percent: heightPercent,
+              }),
+            });
+
+            const result = (await response.json()) as {
+              error?: string;
+              output?: string;
+            };
+
+            if (!response.ok || !result.output) {
+              throw new Error(result.error ?? "Crop task failed");
+            }
+
+            setOutputUrl(result.output);
+            updateNodeData({
+              outputUrl: result.output,
+            });
+          } catch (runError) {
+            setError(runError instanceof Error ? runError.message : "Crop task failed");
+          } finally {
+            setIsRunning(false);
+          }
+        }}
+        className={actionButtonClassName}
+      >
+        {isRunning ? "Running..." : "Run crop"}
+      </button>
+      {usesLocalBlobImage ? (
+        <div className="rounded-xl border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-[12px] text-amber-100">
+          Connected image is a local `blob:` URL. Trigger.dev can only process public URLs.
+        </div>
+      ) : null}
+      {error ? (
+        <div className="rounded-xl border border-red-500/25 bg-red-500/10 px-3 py-2 text-[12px] text-red-200">
+          {error}
+        </div>
+      ) : null}
+      <div className="rounded-xl border border-white/8 bg-black/20 p-3">
+        <FieldLabel>output</FieldLabel>
+        {outputUrl ? (
+          <>
+            <div className="mt-2 break-all text-[12px] text-zinc-300">{outputUrl}</div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={outputUrl}
+              alt="Cropped output"
+              className="mt-3 h-32 w-full rounded-lg object-cover"
+            />
+          </>
+        ) : (
+          <div className="mt-2 text-[12px] text-zinc-500">
+            Cropped image URL will appear here after the Trigger.dev task finishes.
+          </div>
+        )}
       </div>
     </NodeShell>
   );
 }
 
 function ExtractFrameNode({ id, data }: NodeProps<WorkflowNodeType>) {
+  const { updateNodeData } = useWorkflowNodeData(id);
+  const incomingConnections = useNodeConnections({ handleType: "target", handleId: "input" });
+  const sourceIds = incomingConnections.map((connection) => connection.source);
+  const connectedNodes = useNodesData<WorkflowNodeType>(sourceIds);
+  const [videoUrl, setVideoUrl] = useState("");
+  const [timestamp, setTimestamp] = useState("0");
+  const [isRunning, setIsRunning] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [outputUrl, setOutputUrl] = useState<string | null>(null);
+  const connectedVideoUrl =
+    connectedNodes.find((node) => node.data.kind === "videoUpload")?.data.outputUrl ?? null;
+  const effectiveVideoUrl = connectedVideoUrl ?? videoUrl;
+  const usesLocalBlobVideo = effectiveVideoUrl.startsWith("blob:");
+
   return (
     <NodeShell
       accent={data.accent}
       title={data.title}
       icon={PanelsTopLeft}
-      outputLabel="Frame image"
+      outputLabel="output"
       nodeId={id}
     >
       <div>
-        <FieldLabel>Video URL input</FieldLabel>
+        <FieldLabel>video_url</FieldLabel>
         <input
+          value={effectiveVideoUrl}
+          onChange={(event) => setVideoUrl(event.target.value)}
           className={`${inputClassName} mt-2`}
-          placeholder="https://example.com/video.mp4"
+          placeholder="Required video URL (mp4, mov, webm, m4v)"
+          disabled={Boolean(connectedVideoUrl)}
+        />
+        {connectedVideoUrl ? (
+          <div className="mt-2 text-[12px] text-emerald-300">
+            Connected from upload node output.
+          </div>
+        ) : null}
+      </div>
+      <div>
+        <FieldLabel>timestamp</FieldLabel>
+        <input
+          value={timestamp}
+          onChange={(event) => setTimestamp(event.target.value)}
+          className={`${inputClassName} mt-2`}
+          placeholder='Optional. Use seconds like "12.5" or percentage like "50%"'
         />
       </div>
-      <div className="grid grid-cols-2 gap-2">
-        <div>
-          <FieldLabel>Timestamp</FieldLabel>
-          <input className={`${inputClassName} mt-2`} defaultValue="12.5" />
-        </div>
-        <div>
-          <FieldLabel>Mode</FieldLabel>
-          <select className={`${inputClassName} mt-2`} defaultValue="seconds">
-            <option value="seconds">Seconds</option>
-            <option value="percentage">Percentage</option>
-          </select>
-        </div>
+      <div className="rounded-xl border border-white/8 bg-black/20 p-3 text-[12px] leading-5 text-zinc-400">
+        <div>Provider: Internal (FFmpeg via Trigger.dev task)</div>
+        <div>Output: Extracted frame image URL (uploaded via Transloadit)</div>
       </div>
-      <div className="rounded-xl border border-white/8 bg-black/20 p-3 text-[12px] text-zinc-500">
-        Extracts a single frame as image via FFmpeg on Trigger.dev.
+      <button
+        type="button"
+        disabled={isRunning}
+        onClick={async () => {
+          if (usesLocalBlobVideo) {
+            setError(
+              "This video is still only a local browser preview (blob URL). Upload Video -> Extract Frame will fully work after the upload node is wired to Transloadit and returns a public URL.",
+            );
+            return;
+          }
+
+          setIsRunning(true);
+          setError(null);
+
+          try {
+            const response = await fetch("/api/workflows/extract-frame", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                video_url: effectiveVideoUrl,
+                timestamp,
+              }),
+            });
+
+            const result = (await response.json()) as {
+              error?: string;
+              output?: string;
+            };
+
+            if (!response.ok || !result.output) {
+              throw new Error(result.error ?? "Extract frame task failed");
+            }
+
+            setOutputUrl(result.output);
+            updateNodeData({
+              outputUrl: result.output,
+            });
+          } catch (runError) {
+            setError(
+              runError instanceof Error ? runError.message : "Extract frame task failed",
+            );
+          } finally {
+            setIsRunning(false);
+          }
+        }}
+        className={actionButtonClassName}
+      >
+        {isRunning ? "Running..." : "Extract frame"}
+      </button>
+      {usesLocalBlobVideo ? (
+        <div className="rounded-xl border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-[12px] text-amber-100">
+          Connected video is a local `blob:` URL. Trigger.dev can only process public URLs.
+        </div>
+      ) : null}
+      {error ? (
+        <div className="rounded-xl border border-red-500/25 bg-red-500/10 px-3 py-2 text-[12px] text-red-200">
+          {error}
+        </div>
+      ) : null}
+      <div className="rounded-xl border border-white/8 bg-black/20 p-3">
+        <FieldLabel>output</FieldLabel>
+        {outputUrl ? (
+          <>
+            <div className="mt-2 break-all text-[12px] text-zinc-300">{outputUrl}</div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={outputUrl}
+              alt="Extracted frame output"
+              className="mt-3 h-32 w-full rounded-lg object-cover"
+            />
+          </>
+        ) : (
+          <div className="mt-2 text-[12px] text-zinc-500">
+            Extracted frame image URL will appear here after the Trigger.dev task finishes.
+          </div>
+        )}
       </div>
     </NodeShell>
   );
@@ -456,6 +1042,7 @@ const initialEdges: Edge[] = [
     id: "text-llm",
     source: "text-1",
     target: "llm-1",
+    targetHandle: "user",
     type: "smoothstep",
     animated: true,
     style: { stroke: "#4e7dff", strokeWidth: 2 },
@@ -464,6 +1051,7 @@ const initialEdges: Edge[] = [
     id: "image-llm",
     source: "imageUpload-1",
     target: "llm-1",
+    targetHandle: "images",
     type: "smoothstep",
     animated: true,
     style: { stroke: "#4e7dff", strokeWidth: 2 },
@@ -485,7 +1073,11 @@ function WorkflowCanvasInner() {
             ...connection,
             type: "smoothstep",
             animated: true,
-            style: { stroke: "#4e7dff", strokeWidth: 2 },
+            markerEnd: {
+              type: MarkerType.ArrowClosed,
+              color: "#7fb0ff",
+            },
+            style: { stroke: "#7fb0ff", strokeWidth: 2.4, strokeDasharray: "6 6" },
           },
           current,
         ),
@@ -559,7 +1151,17 @@ function WorkflowCanvasInner() {
         fitViewOptions={{ padding: 0.16, minZoom: 0.55 }}
         minZoom={0.35}
         maxZoom={1.8}
-        defaultEdgeOptions={{ type: "smoothstep", animated: true }}
+        defaultEdgeOptions={{
+          type: "smoothstep",
+          animated: true,
+          markerEnd: {
+            type: MarkerType.ArrowClosed,
+            color: "#7fb0ff",
+          },
+          style: { stroke: "#7fb0ff", strokeWidth: 2.4, strokeDasharray: "6 6" },
+        }}
+        connectionLineType={ConnectionLineType.SmoothStep}
+        connectionLineStyle={{ stroke: "#7fb0ff", strokeWidth: 2.2, strokeDasharray: "6 6" }}
         proOptions={{ hideAttribution: true }}
         panOnDrag={[1, 2]}
         panOnScroll
@@ -568,6 +1170,7 @@ function WorkflowCanvasInner() {
         selectionOnDrag={false}
         nodesDraggable
         nodesConnectable
+        connectOnClick={false}
         elementsSelectable
       >
         <Background
