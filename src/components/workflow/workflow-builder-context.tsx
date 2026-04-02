@@ -18,11 +18,15 @@ export type WorkflowAddRequest = {
 type WorkflowBuilderContextValue = {
   addNode: (kind: WorkflowNodeKind) => void;
   request: WorkflowAddRequest | null;
+  historyVersion: number;
+  refreshHistory: () => void;
 };
 
 const WorkflowBuilderContext = createContext<WorkflowBuilderContextValue>({
   addNode: () => undefined,
   request: null,
+  historyVersion: 0,
+  refreshHistory: () => undefined,
 });
 
 export function WorkflowBuilderProvider({
