@@ -10,6 +10,7 @@ const SIDEBAR_COLLAPSED_COL = "44px";
 type AppShellProps = {
   children: React.ReactNode;
   onQuickAddNode?: (kind: WorkflowNodeKind) => void;
+  rightSidebar?: React.ReactNode;
 };
 
 /**
@@ -17,12 +18,15 @@ type AppShellProps = {
  * @param props - React children rendered beside the sidebar.
  * @returns Grid layout wrapping sidebar and main content.
  */
-export function AppShell({ children, onQuickAddNode }: AppShellProps) {
+export function AppShell({ children, onQuickAddNode, rightSidebar }: AppShellProps) {
   const [collapsed, setCollapsed] = useState(false);
+  const gridColumns = rightSidebar
+    ? "xl:grid-cols-[var(--sidebar-col)_minmax(0,1fr)_360px]"
+    : "xl:grid-cols-[var(--sidebar-col)_minmax(0,1fr)]";
 
   return (
     <div
-      className="grid min-h-screen grid-cols-1 xl:h-screen xl:grid-cols-[var(--sidebar-col)_minmax(0,1fr)] xl:overflow-hidden xl:transition-[grid-template-columns] xl:duration-300"
+      className={`grid min-h-screen grid-cols-1 xl:h-screen ${gridColumns} xl:overflow-hidden xl:transition-[grid-template-columns] xl:duration-300`}
       style={
         {
           "--sidebar-col": collapsed ? SIDEBAR_COLLAPSED_COL : SIDEBAR_EXPANDED_COL,
@@ -37,6 +41,7 @@ export function AppShell({ children, onQuickAddNode }: AppShellProps) {
         />
       </div>
       <div className="min-w-0 xl:h-screen xl:overflow-y-auto">{children}</div>
+      {rightSidebar ? <div className="hidden min-w-0 xl:block xl:h-screen">{rightSidebar}</div> : null}
     </div>
   );
 }

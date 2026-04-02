@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Show, UserButton, useClerk, useUser } from "@clerk/nextjs";
 import {
   Crop,
@@ -14,10 +16,10 @@ import {
 import type { WorkflowNodeKind } from "@/components/workflow/workflow-builder-context";
 
 const primaryItems = [
-  { label: "Home", icon: HomeIcon, active: true },
-  { label: "Train Lora", icon: Sparkles },
-  { label: "Node Editor", icon: PanelsTopLeft },
-  { label: "Assets", icon: Folder },
+  { label: "Home", icon: HomeIcon, href: "/home" },
+  { label: "Train Lora", icon: Sparkles, href: "/home" },
+  { label: "Node Editor", icon: PanelsTopLeft, href: "/workspace" },
+  { label: "Assets", icon: Folder, href: "/home" },
 ];
 
 const quickAccessItems: Array<{
@@ -45,9 +47,11 @@ type SidebarButtonProps = {
   label: string;
   active?: boolean;
   trailing?: React.ReactNode;
+  href?: string;
   icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
   iconClassName?: string;
   iconWrapperClassName?: string;
+  transparentActive?: boolean;
 };
 
 function SidebarButton({
@@ -55,19 +59,24 @@ function SidebarButton({
   label,
   active,
   trailing,
+  href,
   icon: Icon,
   iconClassName,
   iconWrapperClassName,
+  transparentActive,
 }: SidebarButtonProps) {
-  return (
-    <button
-      className={[
-        "flex w-full items-center text-left text-[15px] font-medium tracking-[-0.028em] transition-colors",
-        collapsed ? "h-10 justify-center px-0 rounded-xl" : "h-11 gap-3 rounded-[14px] px-4",
-        active ? "bg-[#2f2f2f] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]" : "text-zinc-100 hover:bg-white/[0.04]",
-      ].join(" ")}
-      title={collapsed ? label : undefined}
-    >
+  const classes = [
+    "flex w-full items-center text-left text-[15px] font-medium tracking-[-0.028em] transition-colors",
+    collapsed ? "h-9 justify-center px-0 rounded-xl" : "h-10 gap-3 rounded-[14px] px-4",
+    active
+      ? transparentActive
+        ? "bg-transparent text-white shadow-none"
+        : "bg-[#2f2f2f] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
+      : "text-zinc-100 hover:bg-white/[0.04]",
+  ].join(" ");
+
+  const content = (
+    <>
       <span
         className={[
           "flex shrink-0 items-center justify-center",
@@ -87,6 +96,30 @@ function SidebarButton({
       </span>
       {!collapsed ? <span className="truncate">{label}</span> : null}
       {!collapsed && trailing ? <span className="ml-auto">{trailing}</span> : null}
+    </>
+  );
+
+  if (href) {
+    return (
+      <Link
+        href={href}
+        className={classes}
+        title={collapsed ? label : undefined}
+      >
+        {content}
+      </Link>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      className={[
+        classes,
+      ].join(" ")}
+      title={collapsed ? label : undefined}
+    >
+      {content}
     </button>
   );
 }
@@ -98,6 +131,7 @@ export function AppSidebar({
 }: AppSidebarProps) {
   const clerk = useClerk();
   const { user } = useUser();
+  const pathname = usePathname();
   const primaryEmail =
     user?.primaryEmailAddress?.emailAddress ??
     user?.emailAddresses?.[0]?.emailAddress ??
@@ -128,14 +162,22 @@ export function AppSidebar({
       </div>
 
       <div className="mt-5 flex min-h-0 flex-1 flex-col">
-        <nav className="space-y-1.5">
-          {primaryItems.map(({ label, icon, active }) => (
+        <nav className="space-y-0">
+          {primaryItems.map(({ label, icon, href }) => (
             <SidebarButton
               key={label}
               collapsed={collapsed}
               label={label}
               icon={icon}
-              active={active}
+              href={href}
+              active={
+                href === "/workspace"
+                  ? pathname.startsWith("/workspace")
+                  : href === "/home"
+                    ? pathname.startsWith("/home")
+                    : false
+              }
+              transparentActive={label !== "Node Editor"}
               iconWrapperClassName={
                 label === "Train Lora"
                   ? "bg-[radial-gradient(circle_at_30%_30%,#ffd95c_0%,#ff725c_38%,#7a5cff_68%,#2dc2ff_100%)] text-white"
@@ -157,11 +199,11 @@ export function AppSidebar({
         <div className="sidebar-scrollbar mt-10 min-h-0 flex-1 overflow-y-auto pr-1">
           {!collapsed ? (
             <div className="px-4 text-[13px] font-medium tracking-[-0.02em] text-zinc-500">
-              Quick Access
+              Tools
             </div>
           ) : null}
 
-          <div className={collapsed ? "mt-2 space-y-1" : "mt-3 space-y-1"}>
+          <div className={collapsed ? "mt-1 space-y-0" : "mt-1.5 space-y-0"}>
             {quickAccessItems.map(({ label, icon: Icon, accent, kind }) => (
               <button
                 key={label}
@@ -170,8 +212,8 @@ export function AppSidebar({
                 className={[
                   "w-full transition-colors hover:bg-white/[0.05]",
                   collapsed
-                    ? "flex h-10 items-center justify-center rounded-xl"
-                    : "flex items-center gap-3 rounded-[16px] px-3 py-2.5 text-left",
+                    ? "flex h-9 items-center justify-center rounded-xl"
+                    : "flex items-center gap-3 rounded-[16px] px-3 py-2 text-left",
                 ].join(" ")}
                 title={collapsed ? `${label} node` : undefined}
               >

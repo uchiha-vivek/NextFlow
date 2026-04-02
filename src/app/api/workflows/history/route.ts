@@ -1,0 +1,29 @@
+import { auth } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
+import { listWorkflowRuns } from "@/lib/workflow-history";
+
+export const runtime = "nodejs";
+
+export async function GET() {
+  const { userId } = await auth();
+
+  if (!userId) {
+    return NextResponse.json({ runs: [] });
+  }
+
+  try {
+    const runs = await listWorkflowRuns(userId);
+    return NextResponse.json({ runs });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        runs: [],
+        error:
+          error instanceof Error
+            ? error.message
+            : "Unable to load workflow history",
+      },
+      { status: 200 },
+    );
+  }
+}

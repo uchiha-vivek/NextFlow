@@ -49,6 +49,13 @@ type BaseWorkflowData = {
   model?: string;
   systemPrompt?: string;
   userMessage?: string;
+  imageUrlInput?: string;
+  videoUrlInput?: string;
+  xPercent?: string;
+  yPercent?: string;
+  widthPercent?: string;
+  heightPercent?: string;
+  timestampInput?: string;
 };
 
 type WorkflowNodeType = Node<BaseWorkflowData>;
@@ -483,6 +490,7 @@ function VideoUploadNode({ id, data }: NodeProps<WorkflowNodeType>) {
 
 function LlmNode({ id, data }: NodeProps<WorkflowNodeType>) {
   const { updateNodeData } = useWorkflowNodeData(id);
+  const { refreshHistory } = useWorkflowBuilder();
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const systemConnections = useNodeConnections({ handleType: "target", handleId: "system" });
@@ -613,12 +621,14 @@ function LlmNode({ id, data }: NodeProps<WorkflowNodeType>) {
               headers: {
                 "Content-Type": "application/json",
               },
-              body: JSON.stringify({
-                model,
-                systemPrompt: effectiveSystemPrompt,
-                userMessage: effectiveUserMessage,
-                imageUrls: connectedImageUrls,
-              }),
+                body: JSON.stringify({
+                  nodeId: id,
+                  nodeTitle: data.title,
+                  model,
+                  systemPrompt: effectiveSystemPrompt,
+                  userMessage: effectiveUserMessage,
+                  imageUrls: connectedImageUrls,
+                }),
             });
 
             const result = (await response.json()) as {
@@ -630,12 +640,13 @@ function LlmNode({ id, data }: NodeProps<WorkflowNodeType>) {
             throw new Error(result.error ?? "LLM task failed");
           }
 
-          updateNodeData({
-            outputText: result.output,
+            updateNodeData({
+              outputText: result.output,
             });
           } catch (runError) {
             setError(runError instanceof Error ? runError.message : "LLM task failed");
           } finally {
+            refreshHistory();
             setIsRunning(false);
           }
         }}
@@ -676,17 +687,18 @@ function LlmNode({ id, data }: NodeProps<WorkflowNodeType>) {
 
 function CropNode({ id, data }: NodeProps<WorkflowNodeType>) {
   const { updateNodeData } = useWorkflowNodeData(id);
+  const { refreshHistory } = useWorkflowBuilder();
   const incomingConnections = useNodeConnections({ handleType: "target", handleId: "input" });
   const sourceIds = incomingConnections.map((connection) => connection.source);
   const connectedNodes = useNodesData<WorkflowNodeType>(sourceIds);
-  const [imageUrl, setImageUrl] = useState("");
-  const [xPercent, setXPercent] = useState("0");
-  const [yPercent, setYPercent] = useState("0");
-  const [widthPercent, setWidthPercent] = useState("100");
-  const [heightPercent, setHeightPercent] = useState("100");
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [outputUrl, setOutputUrl] = useState<string | null>(null);
+  const imageUrl = data.imageUrlInput ?? "";
+  const xPercent = data.xPercent ?? "0";
+  const yPercent = data.yPercent ?? "0";
+  const widthPercent = data.widthPercent ?? "100";
+  const heightPercent = data.heightPercent ?? "100";
+  const outputUrl = data.outputUrl ?? null;
   const connectedImageUrl =
     connectedNodes.find((node) => node.data.kind === "imageUpload")?.data.outputUrl ?? null;
   const effectiveImageUrl = connectedImageUrl ?? imageUrl;
@@ -704,7 +716,11 @@ function CropNode({ id, data }: NodeProps<WorkflowNodeType>) {
         <FieldLabel>image_url</FieldLabel>
         <input
           value={effectiveImageUrl}
-          onChange={(event) => setImageUrl(event.target.value)}
+          onChange={(event) =>
+            updateNodeData({
+              imageUrlInput: event.target.value,
+            })
+          }
           className={`${inputClassName} mt-2`}
           placeholder="Required image URL (jpg, jpeg, png, webp, gif)"
           disabled={Boolean(connectedImageUrl)}
@@ -717,32 +733,20 @@ function CropNode({ id, data }: NodeProps<WorkflowNodeType>) {
       </div>
       <div className="grid grid-cols-2 gap-2">
         {[
-          {
-            label: "x_percent",
-            value: xPercent,
-            setValue: setXPercent,
-          },
-          {
-            label: "y_percent",
-            value: yPercent,
-            setValue: setYPercent,
-          },
-          {
-            label: "width_percent",
-            value: widthPercent,
-            setValue: setWidthPercent,
-          },
-          {
-            label: "height_percent",
-            value: heightPercent,
-            setValue: setHeightPercent,
-          },
-        ].map(({ label, value, setValue }) => (
+          { label: "x_percent", value: xPercent, key: "xPercent" as const },
+          { label: "y_percent", value: yPercent, key: "yPercent" as const },
+          { label: "width_percent", value: widthPercent, key: "widthPercent" as const },
+          { label: "height_percent", value: heightPercent, key: "heightPercent" as const },
+        ].map(({ label, value, key }) => (
           <div key={label}>
             <FieldLabel>{label}</FieldLabel>
             <input
               value={value}
-              onChange={(event) => setValue(event.target.value)}
+              onChange={(event) =>
+                updateNodeData({
+                  [key]: event.target.value,
+                })
+              }
               className={`${inputClassName} mt-2`}
             />
           </div>
@@ -772,10 +776,12 @@ function CropNode({ id, data }: NodeProps<WorkflowNodeType>) {
               headers: {
                 "Content-Type": "application/json",
               },
-              body: JSON.stringify({
-                image_url: effectiveImageUrl,
-                x_percent: xPercent,
-                y_percent: yPercent,
+                body: JSON.stringify({
+                  nodeId: id,
+                  nodeTitle: data.title,
+                  image_url: effectiveImageUrl,
+                  x_percent: xPercent,
+                  y_percent: yPercent,
                 width_percent: widthPercent,
                 height_percent: heightPercent,
               }),
@@ -790,13 +796,13 @@ function CropNode({ id, data }: NodeProps<WorkflowNodeType>) {
               throw new Error(result.error ?? "Crop task failed");
             }
 
-            setOutputUrl(result.output);
             updateNodeData({
               outputUrl: result.output,
             });
           } catch (runError) {
             setError(runError instanceof Error ? runError.message : "Crop task failed");
           } finally {
+            refreshHistory();
             setIsRunning(false);
           }
         }}
@@ -838,14 +844,15 @@ function CropNode({ id, data }: NodeProps<WorkflowNodeType>) {
 
 function ExtractFrameNode({ id, data }: NodeProps<WorkflowNodeType>) {
   const { updateNodeData } = useWorkflowNodeData(id);
+  const { refreshHistory } = useWorkflowBuilder();
   const incomingConnections = useNodeConnections({ handleType: "target", handleId: "input" });
   const sourceIds = incomingConnections.map((connection) => connection.source);
   const connectedNodes = useNodesData<WorkflowNodeType>(sourceIds);
-  const [videoUrl, setVideoUrl] = useState("");
-  const [timestamp, setTimestamp] = useState("0");
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [outputUrl, setOutputUrl] = useState<string | null>(null);
+  const videoUrl = data.videoUrlInput ?? "";
+  const timestamp = data.timestampInput ?? "0";
+  const outputUrl = data.outputUrl ?? null;
   const connectedVideoUrl =
     connectedNodes.find((node) => node.data.kind === "videoUpload")?.data.outputUrl ?? null;
   const effectiveVideoUrl = connectedVideoUrl ?? videoUrl;
@@ -863,7 +870,11 @@ function ExtractFrameNode({ id, data }: NodeProps<WorkflowNodeType>) {
         <FieldLabel>video_url</FieldLabel>
         <input
           value={effectiveVideoUrl}
-          onChange={(event) => setVideoUrl(event.target.value)}
+          onChange={(event) =>
+            updateNodeData({
+              videoUrlInput: event.target.value,
+            })
+          }
           className={`${inputClassName} mt-2`}
           placeholder="Required video URL (mp4, mov, webm, m4v)"
           disabled={Boolean(connectedVideoUrl)}
@@ -878,7 +889,11 @@ function ExtractFrameNode({ id, data }: NodeProps<WorkflowNodeType>) {
         <FieldLabel>timestamp</FieldLabel>
         <input
           value={timestamp}
-          onChange={(event) => setTimestamp(event.target.value)}
+          onChange={(event) =>
+            updateNodeData({
+              timestampInput: event.target.value,
+            })
+          }
           className={`${inputClassName} mt-2`}
           placeholder='Optional. Use seconds like "12.5" or percentage like "50%"'
         />
@@ -907,10 +922,12 @@ function ExtractFrameNode({ id, data }: NodeProps<WorkflowNodeType>) {
               headers: {
                 "Content-Type": "application/json",
               },
-              body: JSON.stringify({
-                video_url: effectiveVideoUrl,
-                timestamp,
-              }),
+                body: JSON.stringify({
+                  nodeId: id,
+                  nodeTitle: data.title,
+                  video_url: effectiveVideoUrl,
+                  timestamp,
+                }),
             });
 
             const result = (await response.json()) as {
@@ -922,7 +939,6 @@ function ExtractFrameNode({ id, data }: NodeProps<WorkflowNodeType>) {
               throw new Error(result.error ?? "Extract frame task failed");
             }
 
-            setOutputUrl(result.output);
             updateNodeData({
               outputUrl: result.output,
             });
@@ -931,6 +947,7 @@ function ExtractFrameNode({ id, data }: NodeProps<WorkflowNodeType>) {
               runError instanceof Error ? runError.message : "Extract frame task failed",
             );
           } finally {
+            refreshHistory();
             setIsRunning(false);
           }
         }}
@@ -1070,9 +1087,11 @@ const initialEdges: Edge[] = [
 ];
 
 function WorkflowCanvasInner() {
-  const { request } = useWorkflowBuilder();
+  const { request, refreshHistory } = useWorkflowBuilder();
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  const [isWorkflowRunning, setIsWorkflowRunning] = useState(false);
+  const [workflowError, setWorkflowError] = useState<string | null>(null);
   const reactFlow = useReactFlow();
   const handledRequestId = useRef<number | null>(null);
 
@@ -1137,6 +1156,77 @@ function WorkflowCanvasInner() {
     () => nodes.length === 0,
     [nodes.length],
   );
+  const selectedNodeCount = useMemo(
+    () => nodes.filter((node) => node.selected).length,
+    [nodes],
+  );
+
+  const runWorkflow = useCallback(
+    async (scope: "FULL" | "GROUP") => {
+      setIsWorkflowRunning(true);
+      setWorkflowError(null);
+
+      try {
+        const response = await fetch("/api/workflows/execute", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            scope,
+            nodes,
+            edges,
+          }),
+        });
+
+        const result = (await response.json()) as {
+          error?: string;
+          results?: Array<{
+            nodeId: string;
+            nodeType: string;
+            status: string;
+            outputs?: Record<string, unknown>;
+          }>;
+        };
+
+        if (!response.ok || !result.results) {
+          throw new Error(result.error ?? "Workflow execution failed");
+        }
+
+        setNodes((current) =>
+          current.map((node) => {
+            const runResult = result.results?.find((item) => item.nodeId === node.id);
+            if (!runResult?.outputs) return node;
+
+            const nextData = { ...node.data };
+            const output = runResult.outputs.output;
+
+            if (node.type === "llm" && typeof output === "string") {
+              nextData.outputText = output;
+            }
+
+            if ((node.type === "crop" || node.type === "extractFrame") && typeof output === "string") {
+              nextData.outputUrl = output;
+            }
+
+            return {
+              ...node,
+              data: nextData,
+            };
+          }),
+        );
+
+        refreshHistory();
+      } catch (error) {
+        setWorkflowError(
+          error instanceof Error ? error.message : "Workflow execution failed",
+        );
+      } finally {
+        setIsWorkflowRunning(false);
+      }
+    },
+    [edges, nodes, refreshHistory, setNodes],
+  );
 
   return (
     <div className="relative h-full overflow-hidden rounded-[28px] border border-white/[0.06] bg-[radial-gradient(circle_at_top,rgba(78,125,255,0.12),transparent_28%),linear-gradient(180deg,#171717_0%,#101010_100%)] shadow-[0_24px_70px_rgba(0,0,0,0.34)] select-none">
@@ -1150,6 +1240,37 @@ function WorkflowCanvasInner() {
           </div>
         </div>
       ) : null}
+
+      <div className="absolute right-5 top-5 z-10 flex flex-col items-end gap-2">
+        <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-[#0f1013]/90 p-2 shadow-[0_12px_30px_rgba(0,0,0,0.35)] backdrop-blur-xl">
+          <button
+            type="button"
+            onClick={() => void runWorkflow("FULL")}
+            disabled={isWorkflowRunning || nodes.length === 0}
+            className="rounded-xl bg-[#4e7dff] px-4 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-[#618cff] disabled:cursor-not-allowed disabled:bg-[#2b3c72] disabled:text-zinc-300"
+          >
+            {isWorkflowRunning ? "Running..." : "Run workflow"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void runWorkflow("GROUP")}
+            disabled={isWorkflowRunning || selectedNodeCount === 0}
+            className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2 text-[13px] font-semibold text-zinc-100 transition-colors hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:border-white/6 disabled:text-zinc-500"
+          >
+            Run selected
+          </button>
+        </div>
+        {workflowError ? (
+          <div className="max-w-sm rounded-xl border border-red-500/25 bg-red-500/10 px-3 py-2 text-right text-[12px] text-red-200">
+            {workflowError}
+          </div>
+        ) : null}
+        {selectedNodeCount > 0 ? (
+          <div className="text-[12px] text-zinc-400">
+            {selectedNodeCount} node{selectedNodeCount === 1 ? "" : "s"} selected
+          </div>
+        ) : null}
+      </div>
 
       <ReactFlow
         nodes={nodes}
