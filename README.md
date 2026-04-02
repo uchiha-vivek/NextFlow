@@ -22,3 +22,10 @@ Run the project
 ```bash
 npm run dev
 ```
+
+
+Run trigger.dev
+
+```bash
+npx trigger.dev@latest dev
+```

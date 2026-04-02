@@ -1,25 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { Show, UserButton, useClerk, useUser } from "@clerk/nextjs";
 import {
-  BarChart3,
-  CircleDollarSign,
-  CirclePlus,
-  ChevronDown,
-  ChevronUp,
   Crop,
   FileImage,
   FileText,
   Folder,
   Home as HomeIcon,
-  ImageIcon,
-  LogOut,
   PanelsTopLeft,
-  Settings,
   Sparkles,
-  SquarePen,
   Video,
-  WandSparkles,
 } from "lucide-react";
 import type { WorkflowNodeKind } from "@/components/workflow/workflow-builder-context";
 
@@ -28,15 +18,6 @@ const primaryItems = [
   { label: "Train Lora", icon: Sparkles },
   { label: "Node Editor", icon: PanelsTopLeft },
   { label: "Assets", icon: Folder },
-];
-
-const toolItems = [
-  { label: "Image", icon: ImageIcon, accent: "bg-emerald-400" },
-  { label: "Video", icon: Video, accent: "bg-amber-400" },
-  { label: "Enhancer", icon: WandSparkles, accent: "bg-zinc-400" },
-  { label: "Nano Banana", icon: Sparkles, accent: "bg-yellow-400" },
-  { label: "Realtime", icon: SquarePen, accent: "bg-sky-400" },
-  { label: "Edit", icon: SquarePen, accent: "bg-violet-400" },
 ];
 
 const quickAccessItems: Array<{
@@ -115,7 +96,12 @@ export function AppSidebar({
   onToggleCollapsed,
   onQuickAddNode,
 }: AppSidebarProps) {
-  const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);
+  const clerk = useClerk();
+  const { user } = useUser();
+  const primaryEmail =
+    user?.primaryEmailAddress?.emailAddress ??
+    user?.emailAddresses?.[0]?.emailAddress ??
+    "Signed in";
 
   return (
     <aside
@@ -141,232 +127,136 @@ export function AppSidebar({
         </button>
       </div>
 
-      <nav className="mt-5 space-y-1.5">
-        {primaryItems.map(({ label, icon, active }) => (
-          <SidebarButton
-            key={label}
-            collapsed={collapsed}
-            label={label}
-            icon={icon}
-            active={active}
-            iconWrapperClassName={
-              label === "Train Lora"
-                ? "bg-[radial-gradient(circle_at_30%_30%,#ffd95c_0%,#ff725c_38%,#7a5cff_68%,#2dc2ff_100%)] text-white"
-                : label === "Node Editor"
-                  ? "bg-[#1e88ff] text-white"
-                  : label === "Assets"
-                    ? "bg-transparent text-[#83d3ff]"
-                    : undefined
-            }
-            iconClassName={
-              label === "Assets"
-                ? "h-4 w-4 text-[#83d3ff]"
-                : undefined
-            }
-          />
-        ))}
-      </nav>
-
-      <div className={collapsed ? "mt-8" : "mt-10"}>
-        {!collapsed ? (
-          <div className="px-4 text-[13px] font-medium tracking-[-0.02em] text-zinc-500">
-            Quick Access
-          </div>
-        ) : null}
-
-        <div className={collapsed ? "mt-2 space-y-1.5" : "mt-4 grid grid-cols-2 gap-2"}>
-          {quickAccessItems.map(({ label, icon: Icon, accent, kind }) => (
-            <button
-              key={label}
-              type="button"
-              onClick={() => onQuickAddNode?.(kind)}
-              className={[
-                "transition-colors hover:bg-white/[0.05]",
-                collapsed
-                  ? "flex h-10 w-full items-center justify-center rounded-xl"
-                  : "flex items-center gap-2 rounded-[16px] border border-white/[0.05] bg-[#111111] px-3 py-3 text-left",
-              ].join(" ")}
-              title={collapsed ? `${label} node` : undefined}
-            >
-              <span
-                className={[
-                  "flex shrink-0 items-center justify-center text-white",
-                  collapsed ? `h-6 w-6 rounded-[7px] ${accent}` : `h-7 w-7 rounded-xl ${accent}`,
-                ].join(" ")}
-              >
-                <Icon
-                  className={collapsed ? "h-3.5 w-3.5" : "h-4 w-4"}
-                  strokeWidth={2.1}
-                />
-              </span>
-              {!collapsed ? (
-                <span className="text-[13px] font-semibold tracking-[-0.03em] text-zinc-100">
-                  {label}
-                </span>
-              ) : null}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className={collapsed ? "mt-10" : "mt-14"}>
-        {!collapsed ? (
-          <div className="px-4 text-[13px] font-medium tracking-[-0.02em] text-zinc-500">Tools</div>
-        ) : null}
-
-        <div className="mt-4 space-y-1.5">
-          {toolItems.map(({ label, icon, accent }) => (
+      <div className="mt-5 flex min-h-0 flex-1 flex-col">
+        <nav className="space-y-1.5">
+          {primaryItems.map(({ label, icon, active }) => (
             <SidebarButton
               key={label}
               collapsed={collapsed}
               label={label}
               icon={icon}
-              iconWrapperClassName={`${accent} text-white`}
+              active={active}
+              iconWrapperClassName={
+                label === "Train Lora"
+                  ? "bg-[radial-gradient(circle_at_30%_30%,#ffd95c_0%,#ff725c_38%,#7a5cff_68%,#2dc2ff_100%)] text-white"
+                  : label === "Node Editor"
+                    ? "bg-[#1e88ff] text-white"
+                    : label === "Assets"
+                      ? "bg-transparent text-[#83d3ff]"
+                      : undefined
+              }
+              iconClassName={
+                label === "Assets"
+                  ? "h-4 w-4 text-[#83d3ff]"
+                  : undefined
+              }
             />
           ))}
+        </nav>
 
+        <div className="sidebar-scrollbar mt-10 min-h-0 flex-1 overflow-y-auto pr-1">
           {!collapsed ? (
-            <button
-              className="flex h-11 w-full items-center gap-3 rounded-[14px] bg-[linear-gradient(90deg,#d6e5ff_0%,#8fc2ff_38%,#3267ff_100%)] px-4 text-left text-[15px] font-medium tracking-[-0.028em] text-[#27478a] shadow-[0_10px_24px_rgba(49,102,255,0.22)] transition-colors"
-              title="Upgrade"
-            >
-              <span className="truncate">Upgrade</span>
-            </button>
+            <div className="px-4 text-[13px] font-medium tracking-[-0.02em] text-zinc-500">
+              Quick Access
+            </div>
           ) : null}
+
+          <div className={collapsed ? "mt-2 space-y-1" : "mt-3 space-y-1"}>
+            {quickAccessItems.map(({ label, icon: Icon, accent, kind }) => (
+              <button
+                key={label}
+                type="button"
+                onClick={() => onQuickAddNode?.(kind)}
+                className={[
+                  "w-full transition-colors hover:bg-white/[0.05]",
+                  collapsed
+                    ? "flex h-10 items-center justify-center rounded-xl"
+                    : "flex items-center gap-3 rounded-[16px] px-3 py-2.5 text-left",
+                ].join(" ")}
+                title={collapsed ? `${label} node` : undefined}
+              >
+                <span
+                  className={[
+                    "flex shrink-0 items-center justify-center text-white",
+                    collapsed ? `h-6 w-6 rounded-[7px] ${accent}` : `h-7 w-7 rounded-xl ${accent}`,
+                  ].join(" ")}
+                >
+                  <Icon
+                    className={collapsed ? "h-3.5 w-3.5" : "h-4 w-4"}
+                    strokeWidth={2.1}
+                  />
+                </span>
+                {!collapsed ? (
+                  <span className="text-[14px] font-semibold tracking-[-0.03em] text-zinc-100">
+                    {label}
+                  </span>
+                ) : null}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-4 border-t border-white/[0.06] pt-4">
+          <Show when="signed-out">
+            {collapsed ? (
+              <button
+                type="button"
+                onClick={() => clerk.openSignIn({ forceRedirectUrl: "/workspace" })}
+                className="flex h-10 w-full items-center justify-center rounded-xl border border-white/[0.08] bg-[#111111] text-[13px] font-medium text-zinc-100 transition-colors hover:bg-white/[0.05]"
+                title="Sign in"
+              >
+                In
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => clerk.openSignIn({ forceRedirectUrl: "/workspace" })}
+                className="flex w-full items-center gap-3 rounded-[16px] border border-white/[0.06] bg-[#111111] px-3 py-3 text-left transition-colors hover:bg-white/[0.05]"
+              >
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] border border-white/[0.06] bg-[#1b1b1b] text-sm font-semibold text-zinc-100">
+                  @
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-[15px] font-medium tracking-[-0.03em] text-zinc-100">
+                    Sign in
+                  </div>
+                  <div className="text-[13px] text-zinc-500">Access your workspace</div>
+                </div>
+              </button>
+            )}
+          </Show>
+
+          <Show when="signed-in">
+            {collapsed ? (
+              <div className="flex justify-center">
+                <UserButton
+                  appearance={{
+                    elements: {
+                      userButtonAvatarBox: "h-8 w-8",
+                    },
+                  }}
+                />
+              </div>
+            ) : (
+              <div className="flex items-center gap-3 rounded-[16px] border border-white/[0.06] bg-[#111111] px-3 py-3">
+                <UserButton
+                  appearance={{
+                    elements: {
+                      userButtonAvatarBox: "h-10 w-10",
+                    },
+                  }}
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-[15px] font-medium tracking-[-0.03em] text-zinc-100">
+                    {primaryEmail}
+                  </div>
+                  <div className="text-[13px] text-zinc-500">Signed in</div>
+                </div>
+              </div>
+            )}
+          </Show>
         </div>
       </div>
-
-      {!collapsed ? <div className="mt-14 px-4 text-[13px] font-medium tracking-[-0.02em] text-zinc-500">Sessions</div> : null}
-
-      {!collapsed ? (
-        <div className="mt-auto mb-16 rounded-[20px] bg-[#0c0c0c] px-3 pb-3 pt-4 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)] xl:mb-20">
-          <div className="px-1 text-[15px] font-medium tracking-[-0.03em] text-zinc-100">
-            Earn 3,000 Credits
-          </div>
-          <button className="mt-3 h-10 w-full rounded-[12px] bg-[linear-gradient(90deg,#d6e5ff_0%,#8fc2ff_38%,#3267ff_100%)] px-4 text-left text-[15px] font-medium tracking-[-0.03em] text-[#27478a] shadow-[0_10px_24px_rgba(49,102,255,0.32)]">
-            Upgrade
-          </button>
-        </div>
-      ) : <div className="mt-auto" />}
-
-      {!collapsed && workspaceMenuOpen ? (
-        <div className="absolute bottom-20 left-3 right-3 z-20 rounded-[22px] border border-white/[0.06] bg-[#1b1b1b] p-4 shadow-[0_20px_40px_rgba(0,0,0,0.45)]">
-          <div className="pb-2 text-[13px] font-semibold tracking-[-0.02em] text-zinc-500">
-            Workspaces
-          </div>
-
-          <button className="flex w-full items-center gap-3 rounded-[16px] px-2 py-3 text-left transition-colors hover:bg-white/[0.04]">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/[0.08] bg-[#2a2a2a] text-[17px] font-medium text-zinc-100">
-              D
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-[15px] font-semibold tracking-[-0.03em] text-zinc-100">
-                Default Workspace
-              </span>
-              <span className="block pt-0.5 text-[13px] text-zinc-500">Free</span>
-            </span>
-            <ChevronDown className="h-4 w-4 text-zinc-500" strokeWidth={1.9} />
-          </button>
-
-          <button className="mt-1 flex w-full items-center gap-3 rounded-[16px] px-2 py-3 text-left text-zinc-300 transition-colors hover:bg-white/[0.04]">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.02] text-zinc-400">
-              <CirclePlus className="h-4 w-4" strokeWidth={2} />
-            </span>
-            <span className="text-[15px] font-medium tracking-[-0.03em]">
-              Add workspace
-            </span>
-          </button>
-
-          <div className="my-2 h-px bg-white/[0.06]" />
-
-          <div className="rounded-[18px] border border-white/[0.05] bg-[#101012] px-3 py-3">
-            <div className="flex items-center gap-3">
-              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#12351e]">
-                <span className="h-4 w-4 rounded-full border-2 border-[#2ad15f]" />
-              </span>
-              <div>
-                <div className="text-[15px] font-semibold tracking-[-0.03em] text-zinc-100">
-                  100 Credits remaining
-                </div>
-                <div className="text-[13px] text-zinc-500">100 per day</div>
-              </div>
-            </div>
-          </div>
-
-          <div className="my-2 h-px bg-white/[0.06]" />
-
-          <div className="space-y-1">
-            <button className="flex w-full items-center gap-3 rounded-[16px] px-2 py-2.5 text-left text-zinc-300 transition-colors hover:bg-white/[0.04]">
-              <Sparkles className="h-4 w-4 text-zinc-500" strokeWidth={2} />
-              <span className="text-[15px] font-medium tracking-[-0.03em]">
-                Upgrade plan
-              </span>
-            </button>
-            <button className="flex w-full items-center gap-3 rounded-[16px] px-2 py-2.5 text-left text-zinc-300 transition-colors hover:bg-white/[0.04]">
-              <CircleDollarSign className="h-4 w-4 text-zinc-500" strokeWidth={2} />
-              <span className="text-[15px] font-medium tracking-[-0.03em]">
-                Buy credits
-              </span>
-            </button>
-            <button className="flex w-full items-center gap-3 rounded-[16px] px-2 py-2.5 text-left text-zinc-300 transition-colors hover:bg-white/[0.04]">
-              <Settings className="h-4 w-4 text-zinc-500" strokeWidth={2} />
-              <span className="text-[15px] font-medium tracking-[-0.03em]">
-                Settings
-              </span>
-            </button>
-            <button className="flex w-full items-center gap-3 rounded-[16px] px-2 py-2.5 text-left text-zinc-300 transition-colors hover:bg-white/[0.04]">
-              <BarChart3 className="h-4 w-4 text-zinc-500" strokeWidth={2} />
-              <span className="text-[15px] font-medium tracking-[-0.03em]">
-                Usage Statistics
-              </span>
-            </button>
-          </div>
-
-          <div className="my-2 h-px bg-white/[0.06]" />
-
-          <button
-            type="button"
-            onClick={() => setWorkspaceMenuOpen(false)}
-            className="flex w-full items-center gap-3 rounded-[16px] px-2 py-2.5 text-left text-zinc-300 transition-colors hover:bg-white/[0.04]"
-          >
-            <LogOut className="h-4 w-4 text-zinc-500" strokeWidth={2} />
-            <span className="text-[15px] font-medium tracking-[-0.03em]">Log out</span>
-          </button>
-        </div>
-      ) : null}
-
-      {!collapsed ? (
-        <button
-          type="button"
-          onClick={() => setWorkspaceMenuOpen((value) => !value)}
-          className="mt-3 flex items-center gap-3 rounded-[16px] border border-white/[0.06] bg-[#1b1b1b] px-3 py-2 transition-colors hover:bg-[#222222]"
-        >
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] border border-white/[0.06] bg-[#232323] text-[17px] font-medium text-[#f0d2b4]">
-            C
-          </div>
-          <div className="min-w-0 flex-1 text-left">
-            <div className="truncate text-[15px] font-medium tracking-[-0.03em] text-zinc-100">
-              convincingclassicda...
-            </div>
-            <div className="text-[14px] text-zinc-500">Free</div>
-          </div>
-          <span className="flex h-8 w-8 items-center justify-center text-zinc-500">
-            <ChevronUp
-              className={[
-                "h-4 w-4 transition-transform",
-                workspaceMenuOpen ? "rotate-0" : "rotate-180",
-              ].join(" ")}
-              strokeWidth={2}
-            />
-          </span>
-        </button>
-      ) : (
-        <div className="mt-3 flex justify-center">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full border border-white/[0.06] bg-[#1b1b1b] text-[14px] font-medium text-[#f0d2b4]">
-            C
-          </div>
-        </div>
-      )}
     </aside>
   );
 }
