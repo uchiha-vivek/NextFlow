@@ -9,7 +9,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: "Segoe UI", "Inter", "Helvetica Neue", Arial, sans-serif;
+  --font-sans: "Suisse Intl", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-mono: "Consolas", "SFMono-Regular", monospace;
 }
 
@@ -23,7 +23,7 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: "Segoe UI", "Inter", "Helvetica Neue", Arial, sans-serif;
+  font-family: "Suisse Intl", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 * {
@@ -38,4 +38,114 @@ a {
 ::selection {
   background: rgba(255, 255, 255, 0.18);
   color: #fff;
+}
+
+.landing-auth-panel .cl-rootBox,
+.landing-auth-panel .cl-cardBox,
+.landing-auth-panel .cl-pageScrollBox {
+  width: 100%;
+}
+
+.landing-auth-panel .cl-card {
+  background: #121418 !important;
+  color: #f4f4f5 !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.45) !important;
+}
+
+.landing-auth-panel .cl-card *,
+.landing-auth-panel .cl-rootBox *,
+.landing-auth-panel .cl-pageScrollBox * {
+  color: inherit;
+}
+
+.landing-auth-panel .cl-card p,
+.landing-auth-panel .cl-card span,
+.landing-auth-panel .cl-card div,
+.landing-auth-panel .cl-card label,
+.landing-auth-panel .cl-card h1,
+.landing-auth-panel .cl-card h2,
+.landing-auth-panel .cl-card h3,
+.landing-auth-panel .cl-card h4,
+.landing-auth-panel .cl-card button {
+  color: #f4f4f5 !important;
+}
+
+.landing-auth-panel .cl-headerTitle,
+.landing-auth-panel .cl-formFieldLabel,
+.landing-auth-panel .cl-footerActionText,
+.landing-auth-panel .cl-identityPreviewText,
+.landing-auth-panel .cl-dividerText {
+  color: #f4f4f5 !important;
+}
+
+.landing-auth-panel .cl-headerSubtitle,
+.landing-auth-panel .cl-footerActionText,
+.landing-auth-panel .cl-identityPreviewText {
+  color: #a1a1aa !important;
+}
+
+.landing-auth-panel .cl-socialButtonsBlockButton,
+.landing-auth-panel .cl-formFieldInput,
+.landing-auth-panel .cl-identityPreview {
+  background: #0d0f13 !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  color: #f4f4f5 !important;
+}
+
+.landing-auth-panel .cl-formFieldInput::placeholder {
+  color: #71717a !important;
+}
+
+.landing-auth-panel .cl-socialButtonsBlockButtonText,
+.landing-auth-panel .cl-socialButtonsProviderIcon__google,
+.landing-auth-panel .cl-internal-b3fm6y,
+.landing-auth-panel .cl-internal-1dauvpw {
+  color: #f4f4f5 !important;
+}
+
+.landing-auth-panel .cl-formButtonPrimary {
+  background: #7fb0ff !important;
+  color: #0b0c0e !important;
+  box-shadow: none !important;
+}
+
+.landing-auth-panel .cl-formButtonPrimary:hover {
+  background: #9bc1ff !important;
+}
+
+.landing-auth-panel .cl-footerActionLink,
+.landing-auth-panel .cl-identityPreviewEditButton {
+  color: #7fb0ff !important;
+}
+
+.landing-auth-panel .cl-dividerLine {
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+.landing-auth-panel .cl-footer {
+  background: transparent !important;
+}
+
+.sidebar-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #000000 #000000;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar {
+  width: 10px;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-track {
+  background: #000000;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-thumb {
+  background: #000000;
+  border-radius: 999px;
+  border: 2px solid #1a1a1a;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-corner {
+  background: #000000;
 }

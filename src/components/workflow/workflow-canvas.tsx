@@ -19,6 +19,7 @@ import {
 } from "@xyflow/react";
 import type { Connection, Edge, Node, NodeProps } from "@xyflow/react";
 import {
+  LoaderCircle,
   Crop,
   FileImage,
   FileText,
@@ -642,6 +643,16 @@ function LlmNode({ id, data }: NodeProps<WorkflowNodeType>) {
       >
         {isRunning ? "Running..." : "Run LLM"}
       </button>
+      {isRunning ? (
+        <div className="absolute inset-0 z-20 flex items-center justify-center rounded-[22px] bg-black/45 backdrop-blur-[2px]">
+          <div className="flex flex-col items-center gap-3 rounded-2xl border border-white/10 bg-[#13151a]/95 px-5 py-4 shadow-[0_18px_40px_rgba(0,0,0,0.35)]">
+            <LoaderCircle className="h-8 w-8 animate-spin text-[#7fb0ff]" strokeWidth={2.2} />
+            <div className="text-[12px] font-medium tracking-[0.08em] text-zinc-200">
+              RUNNING LLM
+            </div>
+          </div>
+        </div>
+      ) : null}
       {error ? (
         <div className="rounded-xl border border-red-500/25 bg-red-500/10 px-3 py-2 text-[12px] text-red-200">
           {error}
