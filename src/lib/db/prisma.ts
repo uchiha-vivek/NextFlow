@@ -14,6 +14,9 @@ const globalForPrisma = globalThis as unknown as {
   prisma?: PrismaClientLike | null;
 };
 
+/**
+ * Lazily creates a Prisma client and caches it on `globalThis` to avoid hot-reload reconnect churn.
+ */
 export async function getPrismaClient(): Promise<PrismaClientLike | null> {
   if (typeof globalForPrisma.prisma !== "undefined") {
     return globalForPrisma.prisma;

@@ -54,6 +54,9 @@ type SidebarButtonProps = {
   transparentActive?: boolean;
 };
 
+/**
+ * Reusable sidebar action that can render as either a link or a plain button-shaped control.
+ */
 function SidebarButton({
   collapsed,
   label,
@@ -124,6 +127,9 @@ function SidebarButton({
   );
 }
 
+/**
+ * Main navigation and quick-add rail for the workflow workspace.
+ */
 export function AppSidebar({
   collapsed,
   onToggleCollapsed,

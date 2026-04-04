@@ -11,6 +11,9 @@ import {
 
 export const runtime = "nodejs";
 
+/**
+ * Starts the workflow LLM task and stores the outcome as a single-node history entry when possible.
+ */
 export async function POST(request: Request) {
   let workflowRunId: string | undefined;
   let nodeRunId: string | undefined;

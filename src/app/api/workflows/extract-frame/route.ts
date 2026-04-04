@@ -11,6 +11,9 @@ import {
 
 export const runtime = "nodejs";
 
+/**
+ * Runs the extract-frame Trigger.dev task and mirrors the result into workflow history.
+ */
 export async function POST(request: Request) {
   let workflowRunId: string | undefined;
   let nodeRunId: string | undefined;

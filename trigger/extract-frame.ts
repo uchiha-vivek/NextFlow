@@ -10,6 +10,9 @@ import {
 } from "@/lib/media-workflows";
 import { uploadFileToTransloadit } from "@/lib/transloadit";
 
+/**
+ * Trigger.dev task that extracts a frame from a public video URL and stores the image output.
+ */
 export const extractFrameTask = schemaTask({
   id: "extract-frame",
   schema: extractFramePayloadSchema,

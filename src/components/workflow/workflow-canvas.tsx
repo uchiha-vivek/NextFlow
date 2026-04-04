@@ -60,6 +60,9 @@ type BaseWorkflowData = {
 
 type WorkflowNodeType = Node<BaseWorkflowData>;
 
+/**
+ * Shared visual frame for workflow nodes, including connection handles and delete affordance.
+ */
 function NodeShell({
   children,
   accent,
@@ -150,6 +153,9 @@ function FieldHandle({ id }: { id: string }) {
   );
 }
 
+/**
+ * Converts lightweight markdown-ish model output into readable paragraphs and bullet lists.
+ */
 function renderFormattedText(value: string) {
   const lines = value.split(/\r?\n/);
   const elements: React.ReactNode[] = [];
@@ -212,6 +218,9 @@ function renderFormattedText(value: string) {
   return elements;
 }
 
+/**
+ * Strips a few inline markdown markers so plain text renders cleanly inside node previews.
+ */
 function cleanInlineMarkdown(value: string) {
   return value
     .replace(/\*\*(.*?)\*\*/g, "$1")
@@ -225,6 +234,9 @@ const inputClassName =
 const actionButtonClassName =
   "inline-flex h-10 items-center justify-center rounded-xl bg-[#4e7dff] px-4 text-[13px] font-semibold text-white transition-colors hover:bg-[#618cff] disabled:cursor-not-allowed disabled:bg-[#2b3c72] disabled:text-zinc-300";
 
+/**
+ * Provides a focused setter for the current node's data without exposing the full React Flow state.
+ */
 function useWorkflowNodeData(id: string) {
   const reactFlow = useReactFlow<WorkflowNodeType, Edge>();
 
@@ -1095,6 +1107,9 @@ function WorkflowCanvasInner() {
   const reactFlow = useReactFlow();
   const handledRequestId = useRef<number | null>(null);
 
+  /**
+   * Normalizes new edges so ad-hoc user connections always inherit the workflow canvas styling.
+   */
   const onConnect = useCallback(
     (connection: Connection) =>
       setEdges((current) =>
@@ -1139,6 +1154,9 @@ function WorkflowCanvasInner() {
     ]);
   }, [reactFlow, request, setNodes]);
 
+  /**
+   * Keeps the minimap colors aligned with the semantic node type palette used in the main canvas.
+   */
   const miniMapNodeColor = useCallback((node: WorkflowNodeType) => {
     const colorMap: Record<WorkflowNodeKind, string> = {
       text: "#5ea1ff",
@@ -1353,6 +1371,9 @@ function WorkflowCanvasInner() {
   );
 }
 
+/**
+ * Wraps the workflow canvas in a React Flow provider so sidebar actions can add and run nodes.
+ */
 export function WorkflowCanvas() {
   return (
     <ReactFlowProvider>

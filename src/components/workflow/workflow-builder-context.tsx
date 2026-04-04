@@ -29,6 +29,9 @@ const WorkflowBuilderContext = createContext<WorkflowBuilderContextValue>({
   refreshHistory: () => undefined,
 });
 
+/**
+ * Shares quick-add requests and workflow-history refresh state across the workspace UI.
+ */
 export function WorkflowBuilderProvider({
   value,
   children,
@@ -43,6 +46,9 @@ export function WorkflowBuilderProvider({
   );
 }
 
+/**
+ * Returns the workflow builder context used by the sidebar, canvas, and history panel.
+ */
 export function useWorkflowBuilder() {
   return useContext(WorkflowBuilderContext);
 }

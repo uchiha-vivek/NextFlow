@@ -32,16 +32,25 @@ type WorkflowRunWithNodes = {
   nodeRuns: HistoryNodeRun[];
 };
 
+/**
+ * Formats run durations into short labels that work for both sub-second and multi-second tasks.
+ */
 function formatDuration(durationMs: number | null) {
   if (!durationMs) return "0s";
   if (durationMs < 1000) return `${durationMs}ms`;
   return `${(durationMs / 1000).toFixed(durationMs >= 10_000 ? 0 : 1)}s`;
 }
 
+/**
+ * Converts persisted timestamps into the user's local display format for the history panel.
+ */
 function formatTimestamp(value: string | Date) {
   return new Date(value).toLocaleString();
 }
 
+/**
+ * Maps workflow and node statuses to the sidebar badge styling.
+ */
 function statusClasses(status: string) {
   if (status === "SUCCESS") return "bg-emerald-500/15 text-emerald-300 border-emerald-500/20";
   if (status === "FAILED") return "bg-red-500/15 text-red-300 border-red-500/20";
@@ -49,12 +58,18 @@ function statusClasses(status: string) {
   return "bg-yellow-500/15 text-yellow-200 border-yellow-500/20";
 }
 
+/**
+ * Humanizes backend workflow scopes for display in the history list.
+ */
 function scopeLabel(scope: string) {
   if (scope === "FULL") return "Full workflow";
   if (scope === "GROUP") return "Selected nodes";
   return "Single node";
 }
 
+/**
+ * Extracts a short preview string from node outputs when the payload includes `output`.
+ */
 function summarizeOutput(value: unknown) {
   if (!value || typeof value !== "object") return null;
 
@@ -66,6 +81,9 @@ function summarizeOutput(value: unknown) {
   return null;
 }
 
+/**
+ * Loads and renders recent workflow runs, expanding each run into node-level details on demand.
+ */
 export function WorkflowHistorySidebar() {
   const { historyVersion } = useWorkflowBuilder();
   const [runs, setRuns] = useState<WorkflowRunWithNodes[]>([]);
