@@ -42,16 +42,25 @@ type ExecutionResult = {
   error?: string;
 };
 
+/**
+ * Guards workflow task inputs so background jobs only receive public URLs they can fetch.
+ */
 function isPublicHttpUrl(value: unknown): value is string {
   return typeof value === "string" && /^https?:\/\//.test(value);
 }
 
+/**
+ * Builds the summary shown in workflow history based on whether the user ran all or selected nodes.
+ */
 function getScopeSummary(scope: "FULL" | "GROUP", count: number) {
   return scope === WorkflowRunScope.FULL
     ? "Full workflow run"
     : `${count} selected node${count === 1 ? "" : "s"} run`;
 }
 
+/**
+ * Groups nodes into parallel-safe topological levels, with a cycle fallback in the final level.
+ */
 function getTopologicalLevels(nodes: WorkflowNodeSnapshot[], edges: WorkflowEdgeSnapshot[]) {
   const nodeIds = new Set(nodes.map((node) => node.id));
   const indegree = new Map<string, number>();
@@ -92,6 +101,9 @@ function getTopologicalLevels(nodes: WorkflowNodeSnapshot[], edges: WorkflowEdge
   return levels;
 }
 
+/**
+ * Finds upstream nodes connected to a given target handle so node inputs can be auto-wired.
+ */
 function getInboundSources(
   nodeId: string,
   edges: WorkflowEdgeSnapshot[],
@@ -104,6 +116,9 @@ function getInboundSources(
 
 export const runtime = "nodejs";
 
+/**
+ * Executes either a full workflow or the selected subset, level by level, while syncing run history.
+ */
 export async function POST(request: Request) {
   const startedAt = Date.now();
 

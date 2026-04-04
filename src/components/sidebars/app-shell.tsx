@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { PanelRightClose, PanelRightOpen } from "lucide-react";
 import { AppSidebar } from "./app-sidebar";
 import type { WorkflowNodeKind } from "@/components/workflow/workflow-builder-context";
 
@@ -14,14 +15,15 @@ type AppShellProps = {
 };
 
 /**
- * Shell layout with a resizable sidebar column driven by sidebar collapse state.
- * @param props - React children rendered beside the sidebar.
- * @returns Grid layout wrapping sidebar and main content.
+ * Shell layout that coordinates the left navigation rail, main workspace, and optional history panel.
  */
 export function AppShell({ children, onQuickAddNode, rightSidebar }: AppShellProps) {
   const [collapsed, setCollapsed] = useState(false);
+  const [historyCollapsed, setHistoryCollapsed] = useState(false);
   const gridColumns = rightSidebar
-    ? "xl:grid-cols-[var(--sidebar-col)_minmax(0,1fr)_360px]"
+    ? historyCollapsed
+      ? "xl:grid-cols-[var(--sidebar-col)_minmax(0,1fr)_56px]"
+      : "xl:grid-cols-[var(--sidebar-col)_minmax(0,1fr)_360px]"
     : "xl:grid-cols-[var(--sidebar-col)_minmax(0,1fr)]";
 
   return (
@@ -41,7 +43,36 @@ export function AppShell({ children, onQuickAddNode, rightSidebar }: AppShellPro
         />
       </div>
       <div className="min-w-0 xl:h-screen xl:overflow-y-auto">{children}</div>
-      {rightSidebar ? <div className="hidden min-w-0 xl:block xl:h-screen">{rightSidebar}</div> : null}
+      {rightSidebar ? (
+        <div className="hidden min-w-0 xl:block xl:h-screen">
+          {historyCollapsed ? (
+            <div className="flex h-full items-start justify-center border-l border-white/[0.04] bg-[#171717] px-2 py-4">
+              <button
+                type="button"
+                onClick={() => setHistoryCollapsed(false)}
+                className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03] text-zinc-300 transition-colors hover:bg-white/[0.06] hover:text-white"
+                aria-label="Open workflow history"
+                title="Open workflow history"
+              >
+                <PanelRightOpen className="h-4 w-4" strokeWidth={2} />
+              </button>
+            </div>
+          ) : (
+            <div className="relative h-full">
+              <button
+                type="button"
+                onClick={() => setHistoryCollapsed(true)}
+                className="absolute left-4 top-4 z-20 flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-[#101114]/90 text-zinc-300 shadow-[0_10px_25px_rgba(0,0,0,0.28)] transition-colors hover:bg-white/[0.06] hover:text-white"
+                aria-label="Close workflow history"
+                title="Close workflow history"
+              >
+                <PanelRightClose className="h-4 w-4" strokeWidth={2} />
+              </button>
+              {rightSidebar}
+            </div>
+          )}
+        </div>
+      ) : null}
     </div>
   );
 }

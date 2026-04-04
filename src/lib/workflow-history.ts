@@ -42,6 +42,9 @@ type CreatedWorkflowRunRecord = {
   nodeRuns: Array<{ id: string; nodeId: string | null; sequence: number }>;
 };
 
+/**
+ * Creates a workflow run record for one-off node executions triggered directly from the UI.
+ */
 export async function beginSingleNodeRun(params: {
   userId: string;
   metadata: ExecutionMetadata;
@@ -79,6 +82,9 @@ export async function beginSingleNodeRun(params: {
   };
 }
 
+/**
+ * Finalizes both the workflow run and nested node run for a single-node execution.
+ */
 export async function finishSingleNodeRun(params: {
   workflowRunId: string;
   nodeRunId?: string;
@@ -120,6 +126,9 @@ export async function finishSingleNodeRun(params: {
   });
 }
 
+/**
+ * Returns recent workflow runs with node details for the signed-in user's history sidebar.
+ */
 export async function listWorkflowRuns(userId: string, take = 25) {
   const prisma = await getPrismaClient();
   if (!prisma) return [];
@@ -136,6 +145,9 @@ export async function listWorkflowRuns(userId: string, take = 25) {
   });
 }
 
+/**
+ * Seeds a workflow run and one pending node-run record per node about to execute.
+ */
 export async function beginWorkflowRun(params: {
   userId: string;
   scope: WorkflowRunScope;
@@ -175,6 +187,9 @@ export async function beginWorkflowRun(params: {
   };
 }
 
+/**
+ * Persists the latest status, outputs, and Trigger.dev run id for an individual workflow node.
+ */
 export async function updateWorkflowNodeRun(params: {
   nodeRunId?: string;
   status: WorkflowRunStatus;
@@ -202,6 +217,9 @@ export async function updateWorkflowNodeRun(params: {
   });
 }
 
+/**
+ * Computes the aggregate workflow status from all node outcomes and closes the parent run.
+ */
 export async function finishWorkflowRun(params: {
   workflowRunId?: string;
   startedAt: number;

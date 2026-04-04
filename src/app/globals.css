@@ -149,3 +149,25 @@ a {
 .sidebar-scrollbar::-webkit-scrollbar-corner {
   background: #000000;
 }
+
+.hero-banner {
+  transform: translateZ(0);
+  transition:
+    transform 220ms ease,
+    box-shadow 220ms ease,
+    border-color 220ms ease;
+}
+
+.hero-banner:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.28);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.hero-banner__glow {
+  background:
+    radial-gradient(circle at var(--hero-glow-x, 50%) var(--hero-glow-y, 50%), rgba(255, 255, 255, 0.26), transparent 22%),
+    radial-gradient(circle at calc(var(--hero-glow-x, 50%) - 10%) calc(var(--hero-glow-y, 50%) + 6%), rgba(188, 223, 255, 0.16), transparent 32%);
+  opacity: 0.95;
+  transition: background-position 120ms ease;
+}

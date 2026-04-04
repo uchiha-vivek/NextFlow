@@ -4,6 +4,9 @@ import { listWorkflowRuns } from "@/lib/workflow-history";
 
 export const runtime = "nodejs";
 
+/**
+ * Returns recent workflow history for the current user; anonymous users get an empty list.
+ */
 export async function GET() {
   const { userId } = await auth();
 

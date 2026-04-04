@@ -1,6 +1,9 @@
 import { logger, schemaTask } from "@trigger.dev/sdk/v3";
 import { generateWithAzureOpenAI, runLlmPayloadSchema } from "@/lib/azure-openai";
 
+/**
+ * Trigger.dev task wrapper around the Azure OpenAI helper used by workflow LLM nodes.
+ */
 export const runLlmTask = schemaTask({
   id: "run-llm",
   schema: runLlmPayloadSchema,

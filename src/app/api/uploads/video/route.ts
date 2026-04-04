@@ -10,6 +10,9 @@ const allowedVideoTypes = new Set([
   "video/x-m4v",
 ]);
 
+/**
+ * Accepts a video upload, validates the MIME type, and returns the public Transloadit URL.
+ */
 export async function POST(request: Request) {
   try {
     const formData = await request.formData();

@@ -10,6 +10,9 @@ export const runLlmPayloadSchema = z.object({
 
 export type RunLlmPayload = z.infer<typeof runLlmPayloadSchema>;
 
+/**
+ * Sends a multimodal prompt to the configured Azure OpenAI deployment and returns plain text output.
+ */
 export async function generateWithAzureOpenAI(payload: RunLlmPayload) {
   const endpoint = process.env.AZURE_OPENAI_ENDPOINT;
   const apiKey = process.env.AZURE_OPENAI_API_KEY;
