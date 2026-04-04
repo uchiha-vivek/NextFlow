@@ -11,6 +11,9 @@ import {
 
 export const runtime = "nodejs";
 
+/**
+ * Runs the crop-image Trigger.dev task and records the execution in workflow history when signed in.
+ */
 export async function POST(request: Request) {
   let workflowRunId: string | undefined;
   let nodeRunId: string | undefined;

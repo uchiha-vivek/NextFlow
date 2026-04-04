@@ -50,14 +50,23 @@ type SecondsTimestamp = {
 
 type ParsedTimestamp = PercentTimestamp | SecondsTimestamp;
 
+/**
+ * Creates an isolated temporary directory for a single media-processing run.
+ */
 export async function createTempWorkspace(prefix: string) {
   return fs.mkdtemp(path.join(os.tmpdir(), `${prefix}-`));
 }
 
+/**
+ * Best-effort cleanup for temporary workspaces created during media processing.
+ */
 export async function removeTempWorkspace(directory: string) {
   await fs.rm(directory, { recursive: true, force: true });
 }
 
+/**
+ * Downloads a remote asset to disk so ffmpeg/ffprobe can work with a local file.
+ */
 export async function downloadFile(inputUrl: string, outputPath: string) {
   const response = await fetch(inputUrl);
 
@@ -69,6 +78,9 @@ export async function downloadFile(inputUrl: string, outputPath: string) {
   await fs.writeFile(outputPath, buffer);
 }
 
+/**
+ * Crops an image using percentage-based dimensions from the workflow payload.
+ */
 export async function cropImageFile(
   inputPath: string,
   outputPath: string,
@@ -91,6 +103,9 @@ export async function cropImageFile(
   ]);
 }
 
+/**
+ * Extracts a single frame at an absolute second offset or percentage of video duration.
+ */
 export async function extractFrameFile(
   inputPath: string,
   outputPath: string,
@@ -110,6 +125,9 @@ export async function extractFrameFile(
   ]);
 }
 
+/**
+ * Resolves ffmpeg/ffprobe paths from environment overrides before falling back to PATH.
+ */
 function getBinaryPath(binary: "ffmpeg" | "ffprobe") {
   if (binary === "ffmpeg") {
     return process.env.FFMPEG_PATH || "ffmpeg";
@@ -118,6 +136,9 @@ function getBinaryPath(binary: "ffmpeg" | "ffprobe") {
   return process.env.FFPROBE_PATH || "ffprobe";
 }
 
+/**
+ * Normalizes timestamp inputs so callers can pass either seconds or percentages.
+ */
 async function resolveTimestampSeconds(inputPath: string, rawTimestamp: string | number) {
   const parsed = parseTimestamp(rawTimestamp);
 
@@ -129,6 +150,9 @@ async function resolveTimestampSeconds(inputPath: string, rawTimestamp: string |
   return (durationSeconds * parsed.value) / 100;
 }
 
+/**
+ * Parses user input like `12.5` or `50%` into a typed timestamp representation.
+ */
 function parseTimestamp(rawTimestamp: string | number): ParsedTimestamp {
   if (typeof rawTimestamp === "number") {
     if (rawTimestamp < 0) {
@@ -175,6 +199,9 @@ function parseTimestamp(rawTimestamp: string | number): ParsedTimestamp {
   };
 }
 
+/**
+ * Reads the source video duration via ffprobe for percentage-based seeks.
+ */
 async function getVideoDuration(inputPath: string) {
   const ffprobeOutput = await runProcess(getBinaryPath("ffprobe"), [
     "-v",
@@ -195,6 +222,9 @@ async function getVideoDuration(inputPath: string) {
   return durationSeconds;
 }
 
+/**
+ * Runs a child process and surfaces stderr in failures for easier debugging in routes and tasks.
+ */
 async function runProcess(command: string, args: string[]) {
   return new Promise<string>((resolve, reject) => {
     const child = spawn(command, args, {

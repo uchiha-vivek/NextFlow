@@ -18,6 +18,9 @@ type TransloaditResult = {
   url?: string | null;
 };
 
+/**
+ * Builds a Transloadit client from required server-side credentials.
+ */
 export function getTransloaditClient() {
   return new Transloadit({
     authKey: getEnv("TRANSLOADIT_AUTH_KEY"),
@@ -25,6 +28,9 @@ export function getTransloaditClient() {
   });
 }
 
+/**
+ * Uploads a file that already exists on disk and returns the first public output URL.
+ */
 export async function uploadFileToTransloadit({
   filePath,
   fieldName = "file",
@@ -61,6 +67,9 @@ export async function uploadFileToTransloadit({
   };
 }
 
+/**
+ * Persists an in-memory upload to a temp file before sending it through the shared Transloadit flow.
+ */
 export async function uploadBufferToTransloadit({
   buffer,
   fileName,
@@ -87,10 +96,16 @@ export async function uploadBufferToTransloadit({
   }
 }
 
+/**
+ * Replaces unsafe path characters so user-provided file names cannot escape the temp workspace.
+ */
 function sanitizeFileName(fileName: string) {
   return fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
 }
 
+/**
+ * Picks the first successful Transloadit result URL regardless of step key.
+ */
 function getFirstResult(results: Record<string, TransloaditResult[]> | undefined) {
   if (!results) {
     return null;

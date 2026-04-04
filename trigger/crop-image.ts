@@ -10,6 +10,9 @@ import {
 } from "@/lib/media-workflows";
 import { uploadFileToTransloadit } from "@/lib/transloadit";
 
+/**
+ * Trigger.dev task that downloads a public image, crops it with ffmpeg, and re-uploads the result.
+ */
 export const cropImageTask = schemaTask({
   id: "crop-image",
   schema: cropImagePayloadSchema,
