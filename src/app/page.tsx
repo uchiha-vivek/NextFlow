@@ -6,7 +6,7 @@ export default async function LandingPage() {
   const { userId } = await auth();
 
   if (userId) {
-    redirect("/workspace");
+    redirect("/app");
   }
 
   return (
@@ -48,8 +48,8 @@ export default async function LandingPage() {
             <SignIn
               routing="hash"
               oauthFlow="popup"
-              forceRedirectUrl="/workspace"
-              signUpForceRedirectUrl="/workspace"
+              forceRedirectUrl="/app"
+              signUpForceRedirectUrl="/app"
             />
           </div>
         </Show>
