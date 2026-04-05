@@ -427,7 +427,8 @@ export function AppSidebar({
     <>
       <aside
         className={[
-          "relative flex h-full min-h-screen w-full min-w-0 flex-col bg-[var(--sidebar-bg)] py-5 text-[var(--text-primary)] xl:sticky xl:top-0 xl:h-screen xl:min-h-0 xl:overflow-hidden",
+          "relative flex h-full min-h-screen w-full min-w-0 flex-col bg-[var(--sidebar-bg)] py-5 text-[var(--text-primary)] xl:sticky xl:top-0 xl:h-screen xl:min-h-0",
+          collapsed ? "xl:overflow-visible" : "xl:overflow-hidden",
           collapsed ? "px-1.5" : "px-3",
         ].join(" ")}
       >
@@ -585,8 +586,8 @@ export function AppSidebar({
               {menuOpen ? (
                 <div
                   className={[
-                    "absolute bottom-full z-40 mb-3 overflow-hidden rounded-[24px] border border-white/8 bg-[#1a1a1b] shadow-[0_30px_90px_rgba(0,0,0,0.48)]",
-                    collapsed ? "left-0 w-[320px]" : "left-0 right-0",
+                    "absolute z-40 overflow-hidden rounded-[24px] border border-white/8 bg-[#1a1a1b] shadow-[0_30px_90px_rgba(0,0,0,0.48)]",
+                    collapsed ? "bottom-0 left-full ml-3 w-[320px]" : "bottom-full left-0 right-0 mb-3",
                   ].join(" ")}
                 >
                   <div className="border-b border-white/8 p-3">

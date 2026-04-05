@@ -35,14 +35,14 @@ export function AppShell({ children, onQuickAddNode, rightSidebar }: AppShellPro
         } as React.CSSProperties
       }
     >
-      <div className="min-w-0 xl:h-screen xl:border-r xl:border-[color:var(--border-soft)]">
+      <div className="relative z-30 min-w-0 xl:h-screen xl:border-r xl:border-[color:var(--border-soft)]">
         <AppSidebar
           collapsed={collapsed}
           onToggleCollapsed={() => setCollapsed((value) => !value)}
           onQuickAddNode={onQuickAddNode}
         />
       </div>
-      <div className="min-w-0 xl:h-screen xl:overflow-y-auto">{children}</div>
+      <div className="relative z-0 min-w-0 xl:h-screen xl:overflow-y-auto">{children}</div>
       {rightSidebar ? (
         <div className="hidden min-w-0 xl:block xl:h-screen xl:min-h-0">
           {historyCollapsed ? (

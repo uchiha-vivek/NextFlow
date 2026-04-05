@@ -1,0 +1,13 @@
+.env
+.env.local
+.env.*.local
+.git
+.github
+.next
+node_modules
+npm-debug.log
+README.md
+assets
+tests
+.workflow-tests
+tsconfig.tsbuildinfo
