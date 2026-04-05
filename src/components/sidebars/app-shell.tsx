@@ -18,8 +18,8 @@ type AppShellProps = {
  * Shell layout that coordinates the left navigation rail, main workspace, and optional history panel.
  */
 export function AppShell({ children, onQuickAddNode, rightSidebar }: AppShellProps) {
-  const [collapsed, setCollapsed] = useState(false);
-  const [historyCollapsed, setHistoryCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
+  const [historyCollapsed, setHistoryCollapsed] = useState(true);
   const gridColumns = rightSidebar
     ? historyCollapsed
       ? "xl:grid-cols-[var(--sidebar-col)_minmax(0,1fr)_56px]"
