@@ -2,7 +2,6 @@ import { auth } from "@clerk/nextjs/server";
 import { runs, tasks } from "@trigger.dev/sdk/v3";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { useLogger, withEvlog } from "@/lib/evlog";
 import {
   getInboundSources,
   getScopeSummary,
@@ -86,14 +85,12 @@ export const runtime = "nodejs";
 /**
  * Executes either a full workflow or the selected subset, level by level, while syncing run history.
  */
-export const POST = withEvlog(async (request: Request) => {
+export async function POST(request: Request) {
   const startedAt = Date.now();
-  const log = useLogger();
 
   try {
     const { userId } = await auth();
     if (!userId) {
-      log.set({ auth: { status: "unauthorized" } });
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -105,22 +102,8 @@ export const POST = withEvlog(async (request: Request) => {
         : payload.nodes.filter((node) => node.selected);
 
     if (activeNodes.length === 0) {
-      log.set({
-        auth: { userId },
-        workflow: { scope: payload.scope, activeNodeCount: 0 },
-      });
       return NextResponse.json({ error: "No nodes selected to run" }, { status: 400 });
     }
-
-    log.set({
-      auth: { userId },
-      workflow: {
-        scope: payload.scope,
-        totalNodeCount: payload.nodes.length,
-        activeNodeCount: activeNodes.length,
-        edgeCount: payload.edges.length,
-      },
-    });
 
     const encoder = new TextEncoder();
     const stream = new ReadableStream<Uint8Array>({
@@ -162,14 +145,6 @@ export const POST = withEvlog(async (request: Request) => {
           workflowRunId = workflowRun?.workflowRunId;
           const nodeRunIds = workflowRun?.nodeRunIds ?? {};
           const levels = getTopologicalLevels(activeNodes, payload.edges);
-
-          log.set({
-            workflow: {
-              scope: payload.scope,
-              workflowRunId: workflowRun?.workflowRunId ?? null,
-              levelCount: levels.length,
-            },
-          });
 
           writeEvent(controller, encoder, {
             type: "workflow-start",
@@ -418,16 +393,6 @@ export const POST = withEvlog(async (request: Request) => {
             nodeStatuses: results.map((result) => result.status),
           });
 
-          log.set({
-            workflow: {
-              workflowRunId: workflowRun?.workflowRunId ?? null,
-              successCount: results.filter((result) => result.status === WorkflowRunStatus.SUCCESS)
-                .length,
-              failureCount: results.filter((result) => result.status === WorkflowRunStatus.FAILED)
-                .length,
-            },
-          });
-
           writeEvent(controller, encoder, {
             type: "workflow-complete",
             workflowRunId: workflowRun?.workflowRunId ?? null,
@@ -439,8 +404,6 @@ export const POST = withEvlog(async (request: Request) => {
             error instanceof Error ? error.message : "Unable to execute workflow";
 
           void (async () => {
-            log.error(error instanceof Error ? error : new Error(message));
-
             if (workflowRunId) {
               await finishWorkflowRun({
                 workflowRunId,
@@ -476,8 +439,6 @@ export const POST = withEvlog(async (request: Request) => {
       },
     });
   } catch (error) {
-    log.error(error instanceof Error ? error : new Error("Unable to execute workflow"));
-
     return NextResponse.json(
       {
         error:
@@ -488,4 +449,4 @@ export const POST = withEvlog(async (request: Request) => {
       { status: 400 },
     );
   }
-});
+}

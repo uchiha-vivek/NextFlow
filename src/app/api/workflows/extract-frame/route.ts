@@ -2,7 +2,6 @@ import { auth } from "@clerk/nextjs/server";
 import { runs, tasks } from "@trigger.dev/sdk/v3";
 import { NextResponse } from "next/server";
 import { extractFramePayloadSchema } from "@/lib/media-workflows";
-import { useLogger, withEvlog } from "@/lib/evlog";
 import {
   beginSingleNodeRun,
   finishSingleNodeRun,
@@ -15,28 +14,19 @@ export const runtime = "nodejs";
 /**
  * Runs the extract-frame Trigger.dev task and mirrors the result into workflow history.
  */
-export const POST = withEvlog(async (request: Request) => {
+export async function POST(request: Request) {
   let workflowRunId: string | undefined;
   let nodeRunId: string | undefined;
   const startedAt = Date.now();
-  const log = useLogger();
 
   try {
     const { userId } = await auth();
     if (!userId) {
-      log.set({ auth: { status: "unauthorized" } });
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const json = await request.json();
     const payload = extractFramePayloadSchema.parse(json);
-    log.set({
-      auth: { userId },
-      workflow: {
-        nodeType: "extractFrame",
-        timestamp: payload.timestamp,
-      },
-    });
     const metadata = {
       nodeId: typeof json.nodeId === "string" ? json.nodeId : undefined,
       nodeType: "extractFrame",
@@ -54,12 +44,9 @@ export const POST = withEvlog(async (request: Request) => {
     nodeRunId = runRecord?.nodeRunId;
 
     const handle = await tasks.trigger("extract-frame", payload);
-    log.set({ trigger: { taskId: "extract-frame", runId: handle.id } });
     const run = await runs.poll(handle.id, { pollIntervalMs: 1000 });
 
     if (!run.isSuccess || !run.output) {
-      log.error(new Error(run.error?.message ?? "Extract frame task failed"));
-
       if (workflowRunId) {
         await finishSingleNodeRun({
           workflowRunId,
@@ -90,11 +77,8 @@ export const POST = withEvlog(async (request: Request) => {
       });
     }
 
-    log.set({ workflow: { nodeType: "extractFrame", completed: true } });
     return NextResponse.json(run.output);
   } catch (error) {
-    log.error(error instanceof Error ? error : new Error("Unable to extract frame"));
-
     if (workflowRunId) {
       await finishSingleNodeRun({
         workflowRunId,
@@ -112,4 +96,4 @@ export const POST = withEvlog(async (request: Request) => {
       { status: 400 },
     );
   }
-});
+}

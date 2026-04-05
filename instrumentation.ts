@@ -1,5 +1,3 @@
-import { defineNodeInstrumentation } from "evlog/next/instrumentation";
+export async function register() {}
 
-export const { register, onRequestError } = defineNodeInstrumentation(() =>
-  import("./src/lib/evlog"),
-);
+export async function onRequestError() {}

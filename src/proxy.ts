@@ -1,5 +1,4 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
-import { evlogMiddleware } from "evlog/next";
 
 const isProtectedRoute = createRouteMatcher([
   "/workspace(.*)",
@@ -9,16 +8,10 @@ const isProtectedRoute = createRouteMatcher([
   "/api/uploads(.*)",
 ]);
 
-const applyEvlog = evlogMiddleware({
-  include: ["/api/**"],
-});
-
 export default clerkMiddleware(async (auth, req) => {
   if (isProtectedRoute(req)) {
     await auth.protect();
   }
-
-  return (await applyEvlog(req)) as unknown as Response;
 });
 
 export const config = {
