@@ -112,11 +112,11 @@ function ReleaseNoteCard({
         </div>
       </div>
       <div className="flex flex-col justify-center">
-        <h3 className="max-w-[20rem] text-[22px] font-medium tracking-[-0.04em] text-white">
+        <h3 className="max-w-[20rem] text-[22px] font-medium tracking-[-0.04em] text-[var(--text-primary)]">
           {title}
         </h3>
-        <p className="mt-3 max-w-[24rem] text-[15px] leading-7 text-zinc-400">{description}</p>
-        <div className="mt-8 text-[15px] text-zinc-500">{date}</div>
+        <p className="mt-3 max-w-[24rem] text-[15px] leading-7 text-[var(--text-soft)]">{description}</p>
+        <div className="mt-8 text-[15px] text-[var(--text-muted)]">{date}</div>
       </div>
     </article>
   );
@@ -126,12 +126,12 @@ export function AppHome() {
   const [heroGlow, setHeroGlow] = useState({ x: 50, y: 50 });
 
   return (
-    <main className="h-screen overflow-hidden bg-[#141414] text-white">
+    <main className="h-screen overflow-hidden bg-[var(--app-bg)] text-[var(--text-primary)]">
       <AppShell>
         <section className="sidebar-scrollbar h-full overflow-y-auto px-4 py-4 sm:px-5 lg:px-6">
           <div className="mx-auto max-w-none">
             <div
-              className="hero-banner group relative overflow-hidden rounded-[24px] border border-white/6 px-10 py-24 shadow-[0_24px_70px_rgba(0,0,0,0.25)]"
+              className="hero-banner group relative overflow-hidden rounded-[24px] border border-[color:var(--border-soft)] px-10 py-24 shadow-[var(--shadow-elevated)]"
               onMouseMove={(event) => {
                 const bounds = event.currentTarget.getBoundingClientRect();
                 const x = ((event.clientX - bounds.left) / bounds.width) * 100;
@@ -149,15 +149,15 @@ export function AppHome() {
               <div className="hero-banner__glow pointer-events-none absolute inset-0" />
               <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.22),transparent_24%),radial-gradient(circle_at_80%_70%,rgba(174,214,255,0.18),transparent_32%)]" />
               <div className="relative z-10 flex flex-col items-center">
-                <h1 className="text-center text-5xl font-medium tracking-[-0.05em] text-white sm:text-6xl">
+                <h1 className="text-center text-5xl font-medium tracking-[-0.05em] text-[var(--text-primary)] sm:text-6xl">
                   Start by generating a free image
                 </h1>
                 <div className="mt-12 flex flex-wrap items-center justify-center gap-4">
-                  <button className="flex min-w-[242px] items-center justify-center rounded-full bg-white px-8 py-4 text-[18px] font-medium text-black shadow-[0_12px_30px_rgba(255,255,255,0.16)] transition-transform duration-300 hover:-translate-y-0.5">
+                  <button className="flex min-w-[242px] items-center justify-center rounded-full bg-[var(--surface-0)] px-8 py-4 text-[18px] font-medium text-[var(--text-primary)] shadow-[var(--shadow-panel)] transition-transform duration-300 hover:-translate-y-0.5">
                     Generate Image
                     <span className="ml-3 text-2xl leading-none">-&gt;</span>
                   </button>
-                  <button className="flex min-w-[242px] items-center justify-center rounded-full border border-white/10 bg-white/[0.08] px-8 py-4 text-[18px] font-medium text-white shadow-[0_12px_30px_rgba(0,0,0,0.12)] backdrop-blur-sm transition-transform duration-300 hover:-translate-y-0.5 hover:bg-white/[0.12]">
+                  <button className="flex min-w-[242px] items-center justify-center rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-3)] px-8 py-4 text-[18px] font-medium text-[var(--text-primary)] shadow-[var(--shadow-panel)] backdrop-blur-sm transition-transform duration-300 hover:-translate-y-0.5 hover:bg-[var(--surface-2)]">
                     Generate Video
                     <span className="ml-3 text-2xl leading-none">-&gt;</span>
                   </button>
@@ -245,19 +245,19 @@ export function AppHome() {
                       </div>
                     )}
                   </div>
-                  <div className="mt-4 text-[18px] font-medium tracking-[-0.03em] text-white">
+                  <div className="mt-4 text-[18px] font-medium tracking-[-0.03em] text-[var(--text-primary)]">
                     {card.title}
                   </div>
                 </div>
               ))}
             </div>
 
-            <div className="mt-20 border-t border-white/8 pt-16">
+            <div className="mt-20 border-t border-[color:var(--border-soft)] pt-16">
               <div className="mb-10 flex items-center justify-between gap-4">
-                <div className="text-[42px] font-medium tracking-[-0.05em] text-white">
+                <div className="text-[42px] font-medium tracking-[-0.05em] text-[var(--text-primary)]">
                   Release notes
                 </div>
-                <button className="inline-flex items-center gap-2 rounded-full border border-white/8 bg-white/[0.03] px-5 py-3 text-[15px] font-medium text-white transition-colors hover:bg-white/[0.06]">
+                <button className="inline-flex items-center gap-2 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-2)] px-5 py-3 text-[15px] font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-3)]">
                   View all
                   <ArrowRight className="h-4 w-4" strokeWidth={2.1} />
                 </button>
@@ -270,18 +270,18 @@ export function AppHome() {
               </div>
             </div>
 
-            <footer className="mt-20 border-t border-white/8 pt-12">
+            <footer className="mt-20 border-t border-[color:var(--border-soft)] pt-12">
               <div className="grid gap-x-8 gap-y-10 md:grid-cols-2 xl:grid-cols-4">
                 {footerColumns.map((column) => (
                   <div key={column.title}>
-                    <div className="text-[16px] font-medium tracking-[-0.03em] text-white">
+                    <div className="text-[16px] font-medium tracking-[-0.03em] text-[var(--text-primary)]">
                       {column.title}
                     </div>
                     <div className="mt-4 space-y-2">
                       {column.links.map((link) => (
                         <div
                           key={link}
-                          className="cursor-pointer text-[13px] text-zinc-400 transition-colors hover:text-white"
+                          className="cursor-pointer text-[13px] text-[var(--text-soft)] transition-colors hover:text-[var(--text-primary)]"
                         >
                           {link}
                         </div>

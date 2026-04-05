@@ -43,10 +43,10 @@ function formatTimestamp(value: string | Date) {
 }
 
 function statusClasses(status: string) {
-  if (status === "SUCCESS") return "bg-emerald-500/15 text-emerald-300 border-emerald-500/20";
-  if (status === "FAILED") return "bg-red-500/15 text-red-300 border-red-500/20";
-  if (status === "PARTIAL") return "bg-amber-500/15 text-amber-200 border-amber-500/20";
-  return "bg-yellow-500/15 text-yellow-200 border-yellow-500/20";
+  if (status === "SUCCESS") return "bg-emerald-500/15 text-emerald-500 border-emerald-500/20";
+  if (status === "FAILED") return "bg-red-500/12 text-red-500 border-red-500/20";
+  if (status === "PARTIAL") return "bg-amber-500/12 text-amber-600 border-amber-500/20";
+  return "bg-yellow-500/12 text-yellow-600 border-yellow-500/20";
 }
 
 function scopeLabel(scope: string) {
@@ -103,7 +103,7 @@ export function WorkflowHistorySidebar() {
   const content = useMemo(() => {
     if (loading) {
       return (
-        <div className="flex items-center gap-3 rounded-2xl border border-white/8 bg-black/20 px-4 py-4 text-sm text-zinc-400">
+        <div className="flex items-center gap-3 rounded-[22px] border border-[color:var(--border-soft)] bg-[var(--surface-card)] px-4 py-4 text-sm text-[var(--text-soft)]">
           <LoaderCircle className="h-4 w-4 animate-spin" />
           Loading workflow history...
         </div>
@@ -112,7 +112,7 @@ export function WorkflowHistorySidebar() {
 
     if (runs.length === 0) {
       return (
-        <div className="rounded-2xl border border-white/8 bg-black/20 px-4 py-5 text-sm leading-6 text-zinc-400">
+        <div className="rounded-[22px] border border-[color:var(--border-soft)] bg-[var(--surface-card)] px-4 py-5 text-sm leading-6 text-[var(--text-soft)]">
           No workflow runs yet. Single node executions will appear here first, and the panel is ready for full or selected-group runs too.
         </div>
       );
@@ -127,13 +127,13 @@ export function WorkflowHistorySidebar() {
           return (
             <div
               key={run.id}
-              className="rounded-2xl border border-white/8 bg-black/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
+              className="rounded-[24px] border border-[color:var(--border-soft)] bg-[var(--surface-1)] shadow-[var(--shadow-panel)]"
             >
               <div className="flex items-start gap-3 px-4 py-4">
                 <button
                   type="button"
                   onClick={() => setExpandedId((current) => (current === run.id ? null : run.id))}
-                  className="flex min-w-0 flex-1 items-start gap-3 text-left"
+                  className="flex min-w-0 flex-1 items-start gap-3 rounded-[18px] px-1 py-1 text-left transition-colors hover:bg-[var(--surface-2)]"
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
@@ -142,24 +142,25 @@ export function WorkflowHistorySidebar() {
                       >
                         {run.status}
                       </span>
-                      <span className="rounded-full border border-white/8 bg-white/[0.03] px-2.5 py-1 text-[11px] uppercase tracking-[0.18em] text-zinc-400">
+                      <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-card-muted)] px-2.5 py-1 text-[11px] uppercase tracking-[0.18em] text-[var(--text-soft)]">
                         {scopeLabel(run.scope)}
                       </span>
                     </div>
-                    <div className="mt-2 text-sm font-medium text-white">
+                    <div className="mt-3 text-sm font-semibold text-[var(--text-primary)]">
                       Run {runs.length - index} · {formatTimestamp(run.startedAt)}
                     </div>
-                    <div className="mt-1 text-xs text-zinc-400">
-                      {scopeLabel(run.scope)}{run.summary ? ` · ${run.summary}` : ""}
+                    <div className="mt-1 text-xs text-[var(--text-soft)]">
+                      {scopeLabel(run.scope)}
+                      {run.summary ? ` · ${run.summary}` : ""}
                     </div>
-                    <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500">
+                    <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[var(--text-muted)]">
                       <span>{formatTimestamp(run.startedAt)}</span>
                       <span>Duration: {formatDuration(run.durationMs)}</span>
                       <span>{run.nodeRuns.length} node{run.nodeRuns.length === 1 ? "" : "s"}</span>
                     </div>
                   </div>
                   <ChevronDown
-                    className={`mt-1 h-4 w-4 shrink-0 text-zinc-500 transition-transform ${expanded ? "rotate-180" : ""}`}
+                    className={`mt-1 h-4 w-4 shrink-0 text-[var(--text-muted)] transition-transform ${expanded ? "rotate-180" : ""}`}
                   />
                 </button>
 
@@ -171,7 +172,7 @@ export function WorkflowHistorySidebar() {
                     setPendingDeleteRun(run);
                   }}
                   disabled={isDeleting}
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] text-zinc-400 transition-colors hover:bg-white/[0.06] hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-[color:var(--border-soft)] bg-transparent text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-2)] hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-60"
                   aria-label="Delete workflow run"
                   title="Delete workflow run"
                 >
@@ -184,17 +185,17 @@ export function WorkflowHistorySidebar() {
               </div>
 
               {expanded ? (
-                <div className="border-t border-white/8 px-4 py-4">
+                <div className="border-t border-[color:var(--border-soft)] px-4 py-4">
                   <div className="space-y-4">
                     {run.nodeRuns.map((nodeRun) => (
                       <div key={nodeRun.id} className="relative pl-5">
-                        <div className="absolute left-[7px] top-2 h-[calc(100%+10px)] w-px bg-white/10 last:hidden" />
-                        <div className="absolute left-0 top-2 h-4 w-4 rounded-full border border-white/12 bg-[#131417]" />
-                        <div className="absolute left-4 top-4 h-px w-3 bg-white/10" />
+                        <div className="absolute left-[7px] top-2 h-[calc(100%+10px)] w-px bg-[var(--border-soft)] last:hidden" />
+                        <div className="absolute left-0 top-2 h-4 w-4 rounded-full border border-[color:var(--border-soft)] bg-[var(--panel-muted)]" />
+                        <div className="absolute left-4 top-4 h-px w-3 bg-[var(--border-soft)]" />
 
-                        <div className="rounded-xl border border-white/8 bg-white/[0.02] p-3">
+                        <div className="rounded-xl border border-[color:var(--border-soft)] bg-[var(--surface-2)] p-3">
                           <div className="flex flex-wrap items-center gap-2">
-                            <div className="text-sm font-medium text-white">
+                            <div className="text-sm font-medium text-[var(--text-primary)]">
                               {nodeRun.nodeTitle ?? nodeRun.nodeType}
                               {nodeRun.nodeId ? ` (${nodeRun.nodeId})` : ""}
                             </div>
@@ -203,41 +204,41 @@ export function WorkflowHistorySidebar() {
                             >
                               {nodeRun.status}
                             </span>
-                            <span className="text-xs text-zinc-400">
+                            <span className="text-xs text-[var(--text-soft)]">
                               {formatDuration(nodeRun.durationMs)}
                             </span>
                           </div>
 
                           {summarizeOutput(nodeRun.outputs) ? (
-                            <div className="mt-3 border-l border-white/10 pl-3 text-xs text-zinc-300">
+                            <div className="mt-3 border-l border-[color:var(--border-soft)] pl-3 text-xs text-[var(--text-secondary)]">
                               Output: &quot;{summarizeOutput(nodeRun.outputs)}&quot;
                             </div>
                           ) : null}
 
                           {nodeRun.error ? (
-                            <div className="mt-3 border-l border-red-500/20 pl-3 text-xs text-red-200">
+                            <div className="mt-3 border-l border-red-500/20 pl-3 text-xs text-red-500">
                               Error: &quot;{nodeRun.error}&quot;
                             </div>
                           ) : null}
 
-                          <details className="mt-3 rounded-lg border border-white/6 bg-black/20 px-3 py-2">
-                            <summary className="cursor-pointer text-[11px] uppercase tracking-[0.18em] text-zinc-500">
+                          <details className="mt-3 rounded-lg border border-[color:var(--border-soft)] bg-[var(--surface-2)] px-3 py-2">
+                            <summary className="cursor-pointer text-[11px] uppercase tracking-[0.18em] text-[var(--text-muted)]">
                               Node details
                             </summary>
                             <div className="mt-3 grid gap-3">
                               <div>
-                                <div className="text-[11px] uppercase tracking-[0.18em] text-zinc-500">
+                                <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--text-muted)]">
                                   Inputs
                                 </div>
-                                <pre className="mt-2 overflow-x-auto rounded-lg border border-white/6 bg-black/30 p-3 text-xs text-zinc-300">
+                                <pre className="mt-2 overflow-x-auto rounded-lg border border-[color:var(--border-soft)] bg-[var(--surface-card-muted)] p-3 text-xs text-[var(--text-secondary)]">
                                   {JSON.stringify(nodeRun.inputs, null, 2)}
                                 </pre>
                               </div>
                               <div>
-                                <div className="text-[11px] uppercase tracking-[0.18em] text-zinc-500">
+                                <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--text-muted)]">
                                   Outputs
                                 </div>
-                                <pre className="mt-2 overflow-x-auto rounded-lg border border-white/6 bg-black/30 p-3 text-xs text-zinc-300">
+                                <pre className="mt-2 overflow-x-auto rounded-lg border border-[color:var(--border-soft)] bg-[var(--surface-card-muted)] p-3 text-xs text-[var(--text-secondary)]">
                                   {JSON.stringify(
                                     nodeRun.outputs ?? { error: nodeRun.error ?? null },
                                     null,
@@ -262,17 +263,17 @@ export function WorkflowHistorySidebar() {
 
   return (
     <>
-      <aside className="h-full min-h-0 overflow-hidden border-l border-white/[0.04] bg-[#171717] px-4 py-5">
+      <aside className="h-full min-h-0 overflow-hidden border-l border-[color:var(--border-soft)] bg-[var(--panel-bg)] px-4 py-5">
         <div className="flex h-full min-h-0 flex-col">
           <div className="mb-4 pr-14">
-            <div className="text-xs uppercase tracking-[0.22em] text-zinc-500">
+            <div className="text-xs uppercase tracking-[0.22em] text-[var(--text-muted)]">
               Workflow History
             </div>
-            <div className="mt-2 text-lg font-semibold tracking-[-0.03em] text-white">
+            <div className="mt-2 text-lg font-semibold tracking-[-0.03em] text-[var(--text-primary)]">
               Recent runs
             </div>
             {deleteError ? (
-              <div className="mt-3 rounded-xl border border-red-500/25 bg-red-500/10 px-3 py-2 text-xs text-red-200">
+              <div className="mt-3 rounded-xl border border-red-500/25 bg-red-500/10 px-3 py-2 text-xs text-red-500">
                 {deleteError}
               </div>
             ) : null}
@@ -282,18 +283,18 @@ export function WorkflowHistorySidebar() {
       </aside>
 
       {pendingDeleteRun ? (
-        <div className="fixed inset-0 z-[140] flex items-center justify-center bg-black/55 px-4 backdrop-blur-sm">
-          <div className="w-full max-w-[360px] rounded-[24px] border border-white/10 bg-[#121314] p-5 shadow-[0_24px_80px_rgba(0,0,0,0.45)]">
-            <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">
+        <div className="fixed inset-0 z-[140] flex items-center justify-center bg-black/40 px-4 backdrop-blur-sm">
+          <div className="w-full max-w-[360px] rounded-[24px] border border-[color:var(--border-soft)] bg-[var(--surface-1)] p-5 shadow-[var(--shadow-elevated)]">
+            <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--text-muted)]">
               Delete Run
             </div>
-            <div className="mt-2 text-[20px] font-semibold tracking-[-0.04em] text-white">
+            <div className="mt-2 text-[20px] font-semibold tracking-[-0.04em] text-[var(--text-primary)]">
               Remove this workflow run?
             </div>
-            <div className="mt-3 text-sm leading-6 text-zinc-400">
+            <div className="mt-3 text-sm leading-6 text-[var(--text-soft)]">
               This will permanently remove the selected run from workflow history, including its node details.
             </div>
-            <div className="mt-4 rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-zinc-300">
+            <div className="mt-4 rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-card-muted)] px-4 py-3 text-sm text-[var(--text-secondary)]">
               {pendingDeleteRun.summary || scopeLabel(pendingDeleteRun.scope)}
             </div>
             <div className="mt-5 flex items-center justify-end gap-3">
@@ -301,7 +302,7 @@ export function WorkflowHistorySidebar() {
                 type="button"
                 onClick={() => setPendingDeleteRun(null)}
                 disabled={deletingId === pendingDeleteRun.id}
-                className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm font-medium text-zinc-200 transition-colors hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-xl border border-[color:var(--border-soft)] bg-[var(--surface-2)] px-4 py-2.5 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-3)] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Cancel
               </button>

@@ -28,7 +28,6 @@ import {
   FileText,
   Maximize2,
   Minus,
-  MoonStar,
   MousePointer2,
   PanelsTopLeft,
   Plus,
@@ -40,10 +39,9 @@ import {
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  useWorkflowBuilder,
-  type WorkflowNodeKind,
-} from "./workflow-builder-context";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { useTheme } from "@/components/theme/theme-provider";
+import { useWorkflowBuilder, type WorkflowNodeKind } from "./workflow-builder-context";
 
 type BaseWorkflowData = {
   title: string;
@@ -91,7 +89,7 @@ function NodeShell({
   const reactFlow = useReactFlow<WorkflowNodeType, Edge>();
 
   return (
-    <div className="min-w-[280px] select-none rounded-[22px] border border-white/10 bg-[#111215]/95 p-4 shadow-[0_22px_50px_rgba(0,0,0,0.38)] backdrop-blur-xl">
+    <div className="min-w-[280px] select-none rounded-[22px] border border-[color:var(--border-soft)] bg-[var(--surface-1)] p-4 shadow-[var(--shadow-elevated)] backdrop-blur-xl">
       {input ? (
         <Handle
           type="target"
@@ -107,7 +105,7 @@ function NodeShell({
           >
             <Icon className="h-5 w-5 text-white" strokeWidth={2.1} />
           </div>
-          <div className="truncate text-[15px] font-semibold tracking-[-0.03em] text-white">
+          <div className="truncate text-[15px] font-semibold tracking-[-0.03em] text-[var(--text-primary)]">
             {title}
           </div>
         </div>
@@ -119,7 +117,7 @@ function NodeShell({
               current.filter((edge) => edge.source !== nodeId && edge.target !== nodeId),
             );
           }}
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-black/20 text-zinc-400 transition-colors hover:border-white/20 hover:bg-black/30 hover:text-white"
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-[color:var(--border-soft)] bg-[var(--surface-input)] text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-3)] hover:text-[var(--text-primary)]"
           aria-label="Delete node"
           title="Delete node"
         >
@@ -128,7 +126,7 @@ function NodeShell({
       </div>
       <div className="space-y-3">{children}</div>
       <div className="mt-4 flex items-center justify-between">
-        <div className="text-[11px] uppercase tracking-[0.18em] text-zinc-500">
+        <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--text-muted)]">
           {outputLabel}
         </div>
         <Handle
@@ -144,7 +142,7 @@ function NodeShell({
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="text-[11px] uppercase tracking-[0.18em] text-zinc-500">
+    <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--text-muted)]">
       {children}
     </div>
   );
@@ -237,7 +235,7 @@ function cleanInlineMarkdown(value: string) {
 }
 
 const inputClassName =
-  "w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-[13px] text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-[#4e7dff]";
+  "w-full rounded-xl border border-[color:var(--border-soft)] bg-[var(--surface-input)] px-3 py-2 text-[13px] text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] focus:border-[#4e7dff]";
 
 const actionButtonClassName =
   "inline-flex h-10 items-center justify-center rounded-xl bg-[#4e7dff] px-4 text-[13px] font-semibold text-white transition-colors hover:bg-[#618cff] disabled:cursor-not-allowed disabled:bg-[#2b3c72] disabled:text-zinc-300";
@@ -1287,6 +1285,7 @@ function buildStarterTemplate(kind: StarterPreset["id"]): {
 
 function WorkflowCanvasInner() {
   const { request, refreshHistory } = useWorkflowBuilder();
+  const { theme } = useTheme();
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [isWorkflowRunning, setIsWorkflowRunning] = useState(false);
@@ -1297,6 +1296,7 @@ function WorkflowCanvasInner() {
   const reactFlow = useReactFlow();
   const handledRequestId = useRef<number | null>(null);
   const canvasFrameRef = useRef<HTMLDivElement | null>(null);
+  const isLight = theme === "light";
 
   /**
    * Normalizes new edges so ad-hoc user connections always inherit the workflow canvas styling.
@@ -1520,13 +1520,18 @@ function WorkflowCanvasInner() {
     <div
       ref={canvasFrameRef}
       className="relative h-full overflow-hidden rounded-[30px] border border-white/[0.06] bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.06),transparent_20%),linear-gradient(180deg,#121212_0%,#0c0c0d_100%)] shadow-[0_24px_70px_rgba(0,0,0,0.34)] select-none"
+      style={{
+        borderColor: "var(--border-soft)",
+        backgroundImage: "var(--canvas-bg)",
+        boxShadow: "var(--shadow-elevated)",
+      }}
     >
       <div className="absolute left-5 top-5 z-10">
-        <div className="inline-flex items-center gap-3 rounded-[18px] border border-white/10 bg-[#191919]/90 px-4 py-3 shadow-[0_12px_30px_rgba(0,0,0,0.35)] backdrop-blur-xl">
-          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/[0.05] text-white">
+        <div className="inline-flex items-center gap-3 rounded-[18px] border border-[color:var(--border-soft)] bg-[var(--surface-1)] px-4 py-3 shadow-[var(--shadow-panel)] backdrop-blur-xl">
+          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[var(--surface-2)] text-[var(--text-primary)]">
             <PanelsTopLeft className="h-4 w-4" strokeWidth={2.2} />
           </span>
-          <div className="text-[15px] font-semibold tracking-[-0.03em] text-white">
+          <div className="text-[15px] font-semibold tracking-[-0.03em] text-[var(--text-primary)]">
             Untitled
           </div>
         </div>
@@ -1534,34 +1539,27 @@ function WorkflowCanvasInner() {
 
       <div className="absolute right-5 top-5 z-10 flex flex-col items-end gap-2">
         <div className="flex items-center gap-2">
+          <ThemeToggle />
           <button
             type="button"
-            className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-[#191919]/90 text-zinc-200 shadow-[0_12px_30px_rgba(0,0,0,0.35)] backdrop-blur-xl transition-colors hover:bg-[#212121]"
-            aria-label="Theme toggle"
-            title="Theme toggle"
-          >
-            <MoonStar className="h-4 w-4" strokeWidth={2.1} />
-          </button>
-          <button
-            type="button"
-            className="inline-flex h-11 items-center gap-2 rounded-2xl border border-white/10 bg-[#191919]/90 px-4 text-[13px] font-medium text-zinc-200 shadow-[0_12px_30px_rgba(0,0,0,0.35)] backdrop-blur-xl transition-colors hover:bg-[#212121]"
+            className="inline-flex h-11 items-center gap-2 rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-1)] px-4 text-[13px] font-medium text-[var(--text-secondary)] shadow-[var(--shadow-panel)] backdrop-blur-xl transition-colors hover:bg-[var(--surface-3)]"
           >
             <Share2 className="h-4 w-4" strokeWidth={2.1} />
             Share
           </button>
           <button
             type="button"
-            className="inline-flex h-11 items-center gap-2 rounded-2xl border border-white/10 bg-[#191919]/90 px-4 text-[13px] font-medium text-zinc-200 shadow-[0_12px_30px_rgba(0,0,0,0.35)] backdrop-blur-xl transition-colors hover:bg-[#212121]"
+            className="inline-flex h-11 items-center gap-2 rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-1)] px-4 text-[13px] font-medium text-[var(--text-secondary)] shadow-[var(--shadow-panel)] backdrop-blur-xl transition-colors hover:bg-[var(--surface-3)]"
           >
             <AppWindow className="h-4 w-4" strokeWidth={2.1} />
             Turn workflow into app
           </button>
         </div>
-        <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-[#0f1013]/90 p-2 shadow-[0_12px_30px_rgba(0,0,0,0.35)] backdrop-blur-xl">
+        <div className="flex items-center gap-2 rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-1)] p-2 shadow-[var(--shadow-panel)] backdrop-blur-xl">
           <button
             type="button"
             onClick={() => setToolsOpen((current) => !current)}
-            className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2 text-[13px] font-semibold text-zinc-100 transition-colors hover:bg-white/[0.06]"
+            className="rounded-xl border border-[color:var(--border-soft)] bg-[var(--surface-2)] px-4 py-2 text-[13px] font-semibold text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-3)]"
           >
             Tools
           </button>
@@ -1583,7 +1581,7 @@ function WorkflowCanvasInner() {
             type="button"
             onClick={() => void runWorkflow("GROUP")}
             disabled={isWorkflowRunning || selectedNodeCount === 0}
-            className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2 text-[13px] font-semibold text-zinc-100 transition-colors hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:border-white/6 disabled:text-zinc-500"
+            className="rounded-xl border border-[color:var(--border-soft)] bg-[var(--surface-2)] px-4 py-2 text-[13px] font-semibold text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-3)] disabled:cursor-not-allowed disabled:opacity-60"
           >
             Run selected
           </button>
@@ -1594,7 +1592,7 @@ function WorkflowCanvasInner() {
           </div>
         ) : null}
         {selectedNodeCount > 0 ? (
-          <div className="text-[12px] text-zinc-400">
+          <div className="text-[12px] text-[var(--text-soft)]">
             {selectedNodeCount} node{selectedNodeCount === 1 ? "" : "s"} selected
           </div>
         ) : null}
@@ -1608,19 +1606,19 @@ function WorkflowCanvasInner() {
       >
         <div
           className={[
-            "w-[320px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-[22px] border border-white/10 bg-[#0a0a0b]/96 shadow-[0_28px_80px_rgba(0,0,0,0.52)] backdrop-blur-2xl transition-all duration-200",
+            "w-[320px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-[22px] border border-[color:var(--border-soft)] bg-[var(--surface-1)] shadow-[var(--shadow-elevated)] backdrop-blur-2xl transition-all duration-200",
             toolsOpen ? "translate-y-0 scale-100" : "translate-y-3 scale-[0.98]",
           ].join(" ")}
           onClick={(event) => event.stopPropagation()}
         >
-          <div className="border-b border-white/[0.08] px-3 py-2.5">
-            <div className="flex items-center gap-2.5 rounded-[16px] border border-white/8 bg-white/[0.02] px-3 py-2.5">
-              <Search className="h-4 w-4 shrink-0 text-zinc-500" strokeWidth={2.1} />
+          <div className="border-b border-[color:var(--border-soft)] px-3 py-2.5">
+            <div className="flex items-center gap-2.5 rounded-[16px] border border-[color:var(--border-soft)] bg-[var(--surface-2)] px-3 py-2.5">
+              <Search className="h-4 w-4 shrink-0 text-[var(--text-muted)]" strokeWidth={2.1} />
               <input
                 value={toolSearch}
                 onChange={(event) => setToolSearch(event.target.value)}
                 placeholder="Search nodes or models..."
-                className="w-full bg-transparent text-[14px] tracking-[-0.03em] text-zinc-100 outline-none placeholder:text-zinc-500"
+                className="w-full bg-transparent text-[14px] tracking-[-0.03em] text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)]"
               />
               <button
                 type="button"
@@ -1628,7 +1626,7 @@ function WorkflowCanvasInner() {
                   setToolsOpen(false);
                   setToolSearch("");
                 }}
-                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl text-zinc-500 transition-colors hover:bg-white/[0.06] hover:text-white"
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-3)] hover:text-[var(--text-primary)]"
                 aria-label="Close tools"
                 title="Close tools"
               >
@@ -1773,22 +1771,26 @@ function WorkflowCanvasInner() {
           variant={BackgroundVariant.Dots}
           gap={24}
           size={1.35}
-          color="#24262d"
+          color={isLight ? "#d7d1c7" : "#24262d"}
         />
         <MiniMap
           pannable
           zoomable
-          maskColor="rgba(7, 8, 10, 0.72)"
-          className="!bottom-5 !right-5 !rounded-2xl !border !border-white/10 !bg-[#0e0f12]/90 !shadow-[0_12px_30px_rgba(0,0,0,0.35)]"
+          maskColor={isLight ? "rgba(245, 243, 239, 0.72)" : "rgba(7, 8, 10, 0.72)"}
+          className="!bottom-5 !right-5 !rounded-2xl !border !shadow-[var(--shadow-panel)]"
+          style={{
+            borderColor: "var(--border-soft)",
+            background: "var(--surface-1)",
+          }}
           nodeColor={miniMapNodeColor}
         />
       </ReactFlow>
 
-      <div className="absolute bottom-5 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1 rounded-[22px] border border-white/10 bg-[#151515]/92 p-2 shadow-[0_12px_30px_rgba(0,0,0,0.35)] backdrop-blur-xl">
+      <div className="absolute bottom-5 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1 rounded-[22px] border border-[color:var(--border-soft)] bg-[var(--surface-1)] p-2 shadow-[var(--shadow-panel)] backdrop-blur-xl">
         <button
           type="button"
           onClick={() => setToolsOpen(true)}
-          className="flex h-11 w-11 items-center justify-center rounded-2xl text-zinc-100 transition-colors hover:bg-white/[0.06]"
+          className="flex h-11 w-11 items-center justify-center rounded-2xl text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-3)]"
           aria-label="Open tools"
           title="Open tools"
         >
@@ -1796,7 +1798,7 @@ function WorkflowCanvasInner() {
         </button>
         <button
           type="button"
-          className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/[0.06] text-zinc-100"
+          className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--surface-3)] text-[var(--text-primary)]"
           aria-label="Select mode"
           title="Select mode"
         >
@@ -1804,17 +1806,17 @@ function WorkflowCanvasInner() {
         </button>
         <button
           type="button"
-          className="flex h-11 w-11 items-center justify-center rounded-2xl text-zinc-100 transition-colors hover:bg-white/[0.06]"
+          className="flex h-11 w-11 items-center justify-center rounded-2xl text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-3)]"
           aria-label="Pan mode"
           title="Pan mode"
         >
           <Hand className="h-4 w-4" strokeWidth={2.2} />
         </button>
-        <div className="mx-1 h-7 w-px bg-white/10" />
+        <div className="mx-1 h-7 w-px bg-[var(--border-soft)]" />
         <button
           type="button"
           onClick={() => reactFlow.zoomOut({ duration: 180 })}
-          className="flex h-11 w-11 items-center justify-center rounded-2xl text-zinc-100 transition-colors hover:bg-white/[0.06]"
+          className="flex h-11 w-11 items-center justify-center rounded-2xl text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-3)]"
           aria-label="Zoom out"
           title="Zoom out"
         >
@@ -1823,7 +1825,7 @@ function WorkflowCanvasInner() {
         <button
           type="button"
           onClick={() => reactFlow.zoomIn({ duration: 180 })}
-          className="flex h-11 w-11 items-center justify-center rounded-2xl text-zinc-100 transition-colors hover:bg-white/[0.06]"
+          className="flex h-11 w-11 items-center justify-center rounded-2xl text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-3)]"
           aria-label="Zoom in"
           title="Zoom in"
         >
@@ -1832,7 +1834,7 @@ function WorkflowCanvasInner() {
         <button
           type="button"
           onClick={() => reactFlow.fitView({ padding: 0.16, duration: 240 })}
-          className="flex h-11 w-11 items-center justify-center rounded-2xl text-zinc-100 transition-colors hover:bg-white/[0.06]"
+          className="flex h-11 w-11 items-center justify-center rounded-2xl text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-3)]"
           aria-label="Fit view"
           title="Fit view"
         >
