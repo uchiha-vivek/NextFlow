@@ -4,6 +4,8 @@ exports.isPublicHttpUrl = isPublicHttpUrl;
 exports.getScopeSummary = getScopeSummary;
 exports.getTopologicalLevels = getTopologicalLevels;
 exports.getInboundSources = getInboundSources;
+exports.resolveConnectedMediaInput = resolveConnectedMediaInput;
+exports.resolveLlmInputs = resolveLlmInputs;
 function isPublicHttpUrl(value) {
     return typeof value === "string" && /^https?:\/\//.test(value);
 }
@@ -48,4 +50,20 @@ function getInboundSources(nodeId, edges, handleId) {
     return edges
         .filter((edge) => edge.target === nodeId && (handleId ? edge.targetHandle === handleId : true))
         .map((edge) => edge.source);
+}
+function resolveConnectedMediaInput(nodeId, edges, outputUrlMap, fallbackValue) {
+    const sourceId = getInboundSources(nodeId, edges)[0];
+    return (sourceId ? outputUrlMap.get(sourceId) : null) ?? fallbackValue;
+}
+function resolveLlmInputs(nodeId, edges, outputTextMap, outputUrlMap, defaults) {
+    const systemSourceId = getInboundSources(nodeId, edges, "system")[0];
+    const userSourceId = getInboundSources(nodeId, edges, "user")[0];
+    const imageSourceIds = getInboundSources(nodeId, edges, "images");
+    return {
+        systemPrompt: (systemSourceId ? outputTextMap.get(systemSourceId) : null) ?? defaults.systemPrompt,
+        userMessage: (userSourceId ? outputTextMap.get(userSourceId) : null) ?? defaults.userMessage,
+        imageUrls: imageSourceIds
+            .map((sourceId) => outputUrlMap.get(sourceId))
+            .filter(isPublicHttpUrl),
+    };
 }

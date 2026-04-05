@@ -7,6 +7,8 @@ import {
   getScopeSummary,
   getTopologicalLevels,
   isPublicHttpUrl,
+  resolveConnectedMediaInput,
+  resolveLlmInputs,
 } from "@/lib/workflow-execution-utils";
 import {
   beginWorkflowRun,
@@ -227,11 +229,12 @@ export async function POST(request: Request) {
                   }
 
                   if (node.type === "crop") {
-                    const sourceId = getInboundSources(nodeId, payload.edges)[0];
-                    const connectedUrl = sourceId ? outputUrlMap.get(sourceId) : null;
-                    const imageUrl =
-                      connectedUrl ??
-                      (typeof node.data.imageUrlInput === "string" ? node.data.imageUrlInput : "");
+                    const imageUrl = resolveConnectedMediaInput(
+                      nodeId,
+                      payload.edges,
+                      outputUrlMap,
+                      typeof node.data.imageUrlInput === "string" ? node.data.imageUrlInput : "",
+                    );
 
                     if (!isPublicHttpUrl(imageUrl)) {
                       return fail("Missing public image URL");
@@ -274,11 +277,12 @@ export async function POST(request: Request) {
                   }
 
                   if (node.type === "extractFrame") {
-                    const sourceId = getInboundSources(nodeId, payload.edges)[0];
-                    const connectedUrl = sourceId ? outputUrlMap.get(sourceId) : null;
-                    const videoUrl =
-                      connectedUrl ??
-                      (typeof node.data.videoUrlInput === "string" ? node.data.videoUrlInput : "");
+                    const videoUrl = resolveConnectedMediaInput(
+                      nodeId,
+                      payload.edges,
+                      outputUrlMap,
+                      typeof node.data.videoUrlInput === "string" ? node.data.videoUrlInput : "",
+                    );
 
                     if (!isPublicHttpUrl(videoUrl)) {
                       return fail("Missing public video URL");
@@ -318,27 +322,19 @@ export async function POST(request: Request) {
                   }
 
                   if (node.type === "llm") {
-                    const systemSourceId = getInboundSources(nodeId, payload.edges, "system")[0];
-                    const userSourceId = getInboundSources(nodeId, payload.edges, "user")[0];
-                    const imageSourceIds = getInboundSources(nodeId, payload.edges, "images");
-                    const imageUrls = imageSourceIds
-                      .map((sourceId) => outputUrlMap.get(sourceId))
-                      .filter(isPublicHttpUrl);
-
                     const triggerPayload = {
                       model:
                         typeof node.data.model === "string" ? node.data.model : "gpt-5.4-mini",
-                      systemPrompt:
-                        (systemSourceId ? outputTextMap.get(systemSourceId) : null) ??
-                        (typeof node.data.systemPrompt === "string"
-                          ? node.data.systemPrompt
-                          : "You are a creative workflow planner."),
-                      userMessage:
-                        (userSourceId ? outputTextMap.get(userSourceId) : null) ??
-                        (typeof node.data.userMessage === "string"
-                          ? node.data.userMessage
-                          : ""),
-                      imageUrls,
+                      ...resolveLlmInputs(nodeId, payload.edges, outputTextMap, outputUrlMap, {
+                        systemPrompt:
+                          typeof node.data.systemPrompt === "string"
+                            ? node.data.systemPrompt
+                            : "You are a creative workflow planner.",
+                        userMessage:
+                          typeof node.data.userMessage === "string"
+                            ? node.data.userMessage
+                            : "",
+                      }),
                     };
 
                     const handle = await tasks.trigger("run-llm", triggerPayload);

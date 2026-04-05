@@ -11,6 +11,15 @@ export type WorkflowEdgeSnapshot = {
   targetHandle?: string | null;
 };
 
+export type TextOutputLookup = Pick<Map<string, string>, "get">;
+export type UrlOutputLookup = Pick<Map<string, string>, "get">;
+
+export type ResolvedLlmInputs = {
+  systemPrompt: string;
+  userMessage: string;
+  imageUrls: string[];
+};
+
 export function isPublicHttpUrl(value: unknown): value is string {
   return typeof value === "string" && /^https?:\/\//.test(value);
 }
@@ -72,4 +81,37 @@ export function getInboundSources(
   return edges
     .filter((edge) => edge.target === nodeId && (handleId ? edge.targetHandle === handleId : true))
     .map((edge) => edge.source);
+}
+
+export function resolveConnectedMediaInput(
+  nodeId: string,
+  edges: WorkflowEdgeSnapshot[],
+  outputUrlMap: UrlOutputLookup,
+  fallbackValue: string,
+) {
+  const sourceId = getInboundSources(nodeId, edges)[0];
+  return (sourceId ? outputUrlMap.get(sourceId) : null) ?? fallbackValue;
+}
+
+export function resolveLlmInputs(
+  nodeId: string,
+  edges: WorkflowEdgeSnapshot[],
+  outputTextMap: TextOutputLookup,
+  outputUrlMap: UrlOutputLookup,
+  defaults: {
+    systemPrompt: string;
+    userMessage: string;
+  },
+): ResolvedLlmInputs {
+  const systemSourceId = getInboundSources(nodeId, edges, "system")[0];
+  const userSourceId = getInboundSources(nodeId, edges, "user")[0];
+  const imageSourceIds = getInboundSources(nodeId, edges, "images");
+
+  return {
+    systemPrompt: (systemSourceId ? outputTextMap.get(systemSourceId) : null) ?? defaults.systemPrompt,
+    userMessage: (userSourceId ? outputTextMap.get(userSourceId) : null) ?? defaults.userMessage,
+    imageUrls: imageSourceIds
+      .map((sourceId) => outputUrlMap.get(sourceId))
+      .filter(isPublicHttpUrl),
+  };
 }
