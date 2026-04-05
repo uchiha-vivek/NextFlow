@@ -1,9 +1,11 @@
 "use client";
 
 import {
+  BaseEdge,
   Background,
   BackgroundVariant,
   ConnectionLineType,
+  EdgeLabelRenderer,
   Handle,
   MiniMap,
   MarkerType,
@@ -11,13 +13,14 @@ import {
   ReactFlow,
   ReactFlowProvider,
   addEdge,
+  getSmoothStepPath,
   useEdgesState,
   useNodeConnections,
   useNodesData,
   useNodesState,
   useReactFlow,
 } from "@xyflow/react";
-import type { Connection, Edge, Node, NodeProps } from "@xyflow/react";
+import type { Connection, Edge, EdgeProps, Node, NodeProps } from "@xyflow/react";
 import {
   CheckCircle2,
   LoaderCircle,
@@ -1272,6 +1275,87 @@ const toolItems: Array<{
 ];
 
 const DEFAULT_NODE_WIDTH = 260;
+const WORKFLOW_EDGE_TYPE = "workflow";
+const WORKFLOW_EDGE_MARKER = {
+  type: MarkerType.ArrowClosed,
+  color: "#7fb0ff",
+} as const;
+const WORKFLOW_EDGE_STYLE = {
+  stroke: "#7fb0ff",
+  strokeWidth: 2.4,
+  strokeDasharray: "6 6",
+} as const;
+
+function normalizeWorkflowEdge(edge: Edge): Edge {
+  return {
+    ...edge,
+    type: WORKFLOW_EDGE_TYPE,
+    animated: true,
+    markerEnd: WORKFLOW_EDGE_MARKER,
+    style: {
+      ...WORKFLOW_EDGE_STYLE,
+      ...edge.style,
+    },
+  };
+}
+
+function WorkflowCanvasEdge({
+  id,
+  sourceX,
+  sourceY,
+  sourcePosition,
+  targetX,
+  targetY,
+  targetPosition,
+  markerEnd,
+  style,
+  selected,
+}: EdgeProps<Edge>) {
+  const reactFlow = useReactFlow<WorkflowNodeType, Edge>();
+  const [edgePath, labelX, labelY] = getSmoothStepPath({
+    sourceX,
+    sourceY,
+    sourcePosition,
+    targetX,
+    targetY,
+    targetPosition,
+    borderRadius: 18,
+    offset: 20,
+  });
+
+  return (
+    <>
+      <BaseEdge id={id} path={edgePath} markerEnd={markerEnd} style={style} />
+      <EdgeLabelRenderer>
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            reactFlow.setEdges((current) => current.filter((edge) => edge.id !== id));
+          }}
+          className={[
+            "absolute flex h-7 w-7 items-center justify-center rounded-full border text-[var(--text-primary)] shadow-[var(--shadow-panel)] transition",
+            selected
+              ? "border-[#7fb0ff]/70 bg-[#13233f]"
+              : "border-[color:var(--border-soft)] bg-[var(--surface-1)] hover:border-[#7fb0ff]/60 hover:bg-[var(--surface-2)]",
+          ].join(" ")}
+          style={{
+            transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
+            pointerEvents: "all",
+          }}
+          aria-label="Disconnect nodes"
+          title="Disconnect nodes"
+        >
+          <X className="h-3.5 w-3.5" strokeWidth={2.4} />
+        </button>
+      </EdgeLabelRenderer>
+    </>
+  );
+}
+
+const edgeTypes = {
+  [WORKFLOW_EDGE_TYPE]: WorkflowCanvasEdge,
+};
 
 function createWorkflowNode(
   kind: WorkflowNodeKind,
@@ -1306,19 +1390,13 @@ function buildStarterTemplate(kind: StarterPreset["id"]): {
     source: string,
     target: string,
     targetHandle?: string,
-  ): Edge => ({
-    id,
-    source,
-    target,
-    targetHandle,
-    type: "smoothstep",
-    animated: true,
-    markerEnd: {
-      type: MarkerType.ArrowClosed,
-      color: "#7fb0ff",
-    },
-    style: { stroke: "#7fb0ff", strokeWidth: 2.4, strokeDasharray: "6 6" },
-  });
+  ): Edge =>
+    normalizeWorkflowEdge({
+      id,
+      source,
+      target,
+      targetHandle,
+    });
 
   if (kind === "image-generator") {
     return {
@@ -1430,16 +1508,13 @@ function WorkflowCanvasInner() {
     (connection: Connection) =>
       setEdges((current) =>
         addEdge(
-          {
+          normalizeWorkflowEdge({
             ...connection,
-            type: "smoothstep",
-            animated: true,
-            markerEnd: {
-              type: MarkerType.ArrowClosed,
-              color: "#7fb0ff",
-            },
-            style: { stroke: "#7fb0ff", strokeWidth: 2.4, strokeDasharray: "6 6" },
-          },
+            id:
+              connection.source && connection.target
+                ? `${connection.source}-${connection.sourceHandle ?? "output"}-${connection.target}-${connection.targetHandle ?? "input"}`
+                : `edge-${Date.now()}`,
+          }),
           current,
         ),
       ),
@@ -1619,7 +1694,7 @@ function WorkflowCanvasInner() {
 
       const importedNodes = parsed.nodes.map(normalizeImportedNode);
       setNodes(importedNodes);
-      setEdges(parsed.edges);
+      setEdges(parsed.edges.map((edge) => normalizeWorkflowEdge(edge as Edge)));
       setWorkflowError(null);
 
       setTimeout(() => {
@@ -2015,6 +2090,7 @@ function WorkflowCanvasInner() {
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
@@ -2022,13 +2098,10 @@ function WorkflowCanvasInner() {
         minZoom={0.35}
         maxZoom={1.8}
         defaultEdgeOptions={{
-          type: "smoothstep",
+          type: WORKFLOW_EDGE_TYPE,
           animated: true,
-          markerEnd: {
-            type: MarkerType.ArrowClosed,
-            color: "#7fb0ff",
-          },
-          style: { stroke: "#7fb0ff", strokeWidth: 2.4, strokeDasharray: "6 6" },
+          markerEnd: WORKFLOW_EDGE_MARKER,
+          style: WORKFLOW_EDGE_STYLE,
         }}
         connectionLineType={ConnectionLineType.SmoothStep}
         connectionLineStyle={{ stroke: "#7fb0ff", strokeWidth: 2.2, strokeDasharray: "6 6" }}
