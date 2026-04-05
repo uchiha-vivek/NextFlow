@@ -1267,7 +1267,13 @@ function WorkflowCanvasInner() {
             disabled={isWorkflowRunning || nodes.length === 0}
             className="rounded-xl bg-[#4e7dff] px-4 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-[#618cff] disabled:cursor-not-allowed disabled:bg-[#2b3c72] disabled:text-zinc-300"
           >
-            {isWorkflowRunning ? "Running..." : "Run workflow"}
+            {isWorkflowRunning ? (
+              <span className="inline-flex items-center justify-center">
+                <LoaderCircle className="h-4 w-4 animate-spin" strokeWidth={2.4} />
+              </span>
+            ) : (
+              "Run workflow"
+            )}
           </button>
           <button
             type="button"

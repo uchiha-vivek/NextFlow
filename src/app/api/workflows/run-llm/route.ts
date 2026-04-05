@@ -20,6 +20,11 @@ export async function POST(request: Request) {
   const startedAt = Date.now();
 
   try {
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const json = await request.json();
     const payload = runLlmPayloadSchema.parse(json);
     const metadata = {
@@ -29,17 +34,13 @@ export async function POST(request: Request) {
       scope: WorkflowRunScope.SINGLE,
       summary: "LLM node run",
     };
-    const { userId } = await auth();
-
-    if (userId) {
-      const runRecord = await beginSingleNodeRun({
-        userId,
-        metadata,
-        inputs: payload,
-      });
-      workflowRunId = runRecord?.workflowRunId;
-      nodeRunId = runRecord?.nodeRunId;
-    }
+    const runRecord = await beginSingleNodeRun({
+      userId,
+      metadata,
+      inputs: payload,
+    });
+    workflowRunId = runRecord?.workflowRunId;
+    nodeRunId = runRecord?.nodeRunId;
 
     const handle = await tasks.trigger("run-llm", payload);
     const run = await runs.poll(handle.id, { pollIntervalMs: 1000 });
