@@ -129,7 +129,7 @@ a {
 
 .sidebar-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: #000000 #000000;
+  scrollbar-color: #5a5f6b #111216;
 }
 
 .sidebar-scrollbar::-webkit-scrollbar {
@@ -137,17 +137,17 @@ a {
 }
 
 .sidebar-scrollbar::-webkit-scrollbar-track {
-  background: #000000;
+  background: #111216;
 }
 
 .sidebar-scrollbar::-webkit-scrollbar-thumb {
-  background: #000000;
+  background: #5a5f6b;
   border-radius: 999px;
-  border: 2px solid #1a1a1a;
+  border: 2px solid #111216;
 }
 
 .sidebar-scrollbar::-webkit-scrollbar-corner {
-  background: #000000;
+  background: #111216;
 }
 
 .hero-banner {

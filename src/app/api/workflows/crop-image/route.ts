@@ -20,6 +20,11 @@ export async function POST(request: Request) {
   const startedAt = Date.now();
 
   try {
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const json = await request.json();
     const payload = cropImagePayloadSchema.parse(json);
     const metadata = {
@@ -29,17 +34,13 @@ export async function POST(request: Request) {
       scope: WorkflowRunScope.SINGLE,
       summary: "Crop image node run",
     };
-    const { userId } = await auth();
-
-    if (userId) {
-      const runRecord = await beginSingleNodeRun({
-        userId,
-        metadata,
-        inputs: payload,
-      });
-      workflowRunId = runRecord?.workflowRunId;
-      nodeRunId = runRecord?.nodeRunId;
-    }
+    const runRecord = await beginSingleNodeRun({
+      userId,
+      metadata,
+      inputs: payload,
+    });
+    workflowRunId = runRecord?.workflowRunId;
+    nodeRunId = runRecord?.nodeRunId;
 
     const handle = await tasks.trigger("crop-image", payload);
     const run = await runs.poll(handle.id, { pollIntervalMs: 1000 });

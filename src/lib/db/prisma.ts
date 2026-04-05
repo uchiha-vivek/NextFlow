@@ -1,3 +1,6 @@
+import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaClient } from "@prisma/client";
+
 type PrismaClientLike = {
   workflowRun: {
     create: (args: unknown) => Promise<unknown>;
@@ -14,6 +17,16 @@ const globalForPrisma = globalThis as unknown as {
   prisma?: PrismaClientLike | null;
 };
 
+function getDatabaseUrl() {
+  const databaseUrl = process.env.DATABASE_URL;
+
+  if (!databaseUrl) {
+    throw new Error("Missing required environment variable: DATABASE_URL");
+  }
+
+  return databaseUrl;
+}
+
 /**
  * Lazily creates a Prisma client and caches it on `globalThis` to avoid hot-reload reconnect churn.
  */
@@ -23,21 +36,16 @@ export async function getPrismaClient(): Promise<PrismaClientLike | null> {
   }
 
   try {
-    const prismaModule = (await import("@prisma/client")) as {
-      PrismaClient?: new (options?: unknown) => PrismaClientLike;
-    };
+    const adapter = new PrismaPg({ connectionString: getDatabaseUrl() });
 
-    if (!prismaModule.PrismaClient) {
-      globalForPrisma.prisma = null;
-      return null;
-    }
-
-    globalForPrisma.prisma = new prismaModule.PrismaClient({
+    globalForPrisma.prisma = new PrismaClient({
+      adapter,
       log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
     });
 
     return globalForPrisma.prisma;
-  } catch {
+  } catch (error) {
+    console.error("Failed to initialize Prisma client", error);
     globalForPrisma.prisma = null;
     return null;
   }

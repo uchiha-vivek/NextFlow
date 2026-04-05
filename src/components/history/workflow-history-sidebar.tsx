@@ -254,20 +254,18 @@ export function WorkflowHistorySidebar() {
   }, [expandedId, loading, runs]);
 
   return (
-    <aside className="h-full border-l border-white/[0.04] bg-[#171717] px-4 py-5">
+    <aside className="h-full min-h-0 overflow-hidden border-l border-white/[0.04] bg-[#171717] px-4 py-5">
       <div className="flex h-full min-h-0 flex-col">
-        <div className="mb-4">
+        <div className="mb-4 pr-14">
           <div className="text-xs uppercase tracking-[0.22em] text-zinc-500">
             Workflow History
           </div>
           <div className="mt-2 text-lg font-semibold tracking-[-0.03em] text-white">
             Recent runs
           </div>
-          <div className="mt-1 text-sm leading-6 text-zinc-400">
-            Tracks single node runs now, and is structured for full workflow and selected-group runs.
-          </div>
+          {/*  */}
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto pr-1">{content}</div>
+        <div className="sidebar-scrollbar min-h-0 flex-1 overflow-y-auto pr-2">{content}</div>
       </div>
     </aside>
   );
