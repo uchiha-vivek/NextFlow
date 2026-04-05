@@ -106,5 +106,14 @@ node --test --experimental-test-isolation=none .workflow-tests\tests\workflow-no
 
 
 
+## Some Initial future enhancements
 
+1. Including evlogs and consuming through the axiom or OpenTelemetry
+2. Rate limiting middleware with the help of clerk
+3. Guard on File size upload
+4. Cleaning up old workflow history
+5. Including JS docs for all the functions
+6. Cron Jobs for user credit management
+
+[Loom video for enhancements](https://www.loom.com/share/ecfe59e21a7e45c4b7fe5523adb0d036)
 
