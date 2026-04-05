@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { getPrismaClient } from "@/lib/db/prisma";
 
 export const WorkflowRunScope = {
@@ -25,10 +26,9 @@ export type ExecutionMetadata = {
 };
 
 type JsonRecord = Record<string, unknown>;
-type CreatedRunRecord = {
-  id: string;
-  nodeRuns: Array<{ id: string }>;
-};
+type CreatedRunRecord = Prisma.WorkflowRunGetPayload<{
+  include: { nodeRuns: true };
+}>;
 type WorkflowNodeSeed = {
   nodeId?: string;
   nodeType: string;
@@ -37,10 +37,9 @@ type WorkflowNodeSeed = {
   sequence: number;
 };
 
-type CreatedWorkflowRunRecord = {
-  id: string;
-  nodeRuns: Array<{ id: string; nodeId: string | null; sequence: number }>;
-};
+type CreatedWorkflowRunRecord = Prisma.WorkflowRunGetPayload<{
+  include: { nodeRuns: true };
+}>;
 
 /**
  * Creates a workflow run record for one-off node executions triggered directly from the UI.
@@ -54,7 +53,7 @@ export async function beginSingleNodeRun(params: {
   if (!prisma) return null;
 
   const scope = params.metadata.scope ?? WorkflowRunScope.SINGLE;
-  const run = (await prisma.workflowRun.create({
+  const run: CreatedRunRecord = await prisma.workflowRun.create({
     data: {
       userId: params.userId,
       scope,
@@ -66,7 +65,7 @@ export async function beginSingleNodeRun(params: {
           nodeType: params.metadata.nodeType,
           nodeTitle: params.metadata.nodeTitle,
           status: WorkflowRunStatus.RUNNING,
-          inputs: params.inputs,
+          inputs: params.inputs as Prisma.InputJsonObject,
           sequence: 0,
         },
       },
@@ -74,7 +73,7 @@ export async function beginSingleNodeRun(params: {
     include: {
       nodeRuns: true,
     },
-  })) as CreatedRunRecord;
+  });
 
   return {
     workflowRunId: run.id,
@@ -115,7 +114,7 @@ export async function finishSingleNodeRun(params: {
         where: { id: params.nodeRunId },
         data: {
           status: params.status,
-          outputs: params.outputs ?? undefined,
+          outputs: params.outputs ? (params.outputs as Prisma.InputJsonObject) : undefined,
           error: params.error ?? undefined,
           triggerRunId: params.triggerRunId ?? undefined,
           finishedAt,
@@ -157,7 +156,7 @@ export async function beginWorkflowRun(params: {
   const prisma = await getPrismaClient();
   if (!prisma) return null;
 
-  const run = (await prisma.workflowRun.create({
+  const run: CreatedWorkflowRunRecord = await prisma.workflowRun.create({
     data: {
       userId: params.userId,
       scope: params.scope,
@@ -169,7 +168,7 @@ export async function beginWorkflowRun(params: {
           nodeType: node.nodeType,
           nodeTitle: node.nodeTitle,
           status: WorkflowRunStatus.RUNNING,
-          inputs: node.inputs,
+          inputs: node.inputs as Prisma.InputJsonObject,
           sequence: node.sequence,
         })),
       },
@@ -177,7 +176,7 @@ export async function beginWorkflowRun(params: {
     include: {
       nodeRuns: true,
     },
-  })) as CreatedWorkflowRunRecord;
+  });
 
   return {
     workflowRunId: run.id,
@@ -208,7 +207,7 @@ export async function updateWorkflowNodeRun(params: {
     where: { id: params.nodeRunId },
     data: {
       status: params.status,
-      outputs: params.outputs ?? undefined,
+      outputs: params.outputs ? (params.outputs as Prisma.InputJsonObject) : undefined,
       error: params.error ?? undefined,
       triggerRunId: params.triggerRunId ?? undefined,
       finishedAt,
