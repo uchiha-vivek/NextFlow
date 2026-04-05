@@ -1,20 +1,8 @@
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
 
-type PrismaClientLike = {
-  workflowRun: {
-    create: (args: unknown) => Promise<unknown>;
-    findMany: (args: unknown) => Promise<unknown[]>;
-    update: (args: unknown) => Promise<unknown>;
-  };
-  nodeRun: {
-    update: (args: unknown) => Promise<unknown>;
-  };
-  $transaction: <T>(callback: (tx: PrismaClientLike) => Promise<T>) => Promise<T>;
-};
-
 const globalForPrisma = globalThis as unknown as {
-  prisma?: PrismaClientLike | null;
+  prisma?: PrismaClient | null;
 };
 
 function getDatabaseUrl() {
@@ -30,9 +18,9 @@ function getDatabaseUrl() {
 /**
  * Lazily creates a Prisma client and caches it on `globalThis` to avoid hot-reload reconnect churn.
  */
-export async function getPrismaClient(): Promise<PrismaClientLike | null> {
+export async function getPrismaClient(): Promise<PrismaClient | null> {
   if (typeof globalForPrisma.prisma !== "undefined") {
-    return globalForPrisma.prisma;
+    return globalForPrisma.prisma ?? null;
   }
 
   try {
