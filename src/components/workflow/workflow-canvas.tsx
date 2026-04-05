@@ -19,20 +19,23 @@ import {
 } from "@xyflow/react";
 import type { Connection, Edge, Node, NodeProps } from "@xyflow/react";
 import {
-  AppWindow,
+  CheckCircle2,
   LoaderCircle,
   Crop,
   ChevronRight,
+  Download,
+  FileUp,
   Hand,
+  Info,
   FileImage,
   FileText,
   Maximize2,
   Minus,
   MousePointer2,
+  AlertTriangle,
   PanelsTopLeft,
   Plus,
   Search,
-  Share2,
   Sparkles,
   Trash2,
   Video,
@@ -41,12 +44,20 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { useTheme } from "@/components/theme/theme-provider";
+import {
+  applyNodeExecutionResult,
+  normalizeImportedNode,
+  type StreamNodeResult,
+  type WorkflowExportPayload,
+} from "@/lib/workflow-canvas-utils";
 import { useWorkflowBuilder, type WorkflowNodeKind } from "./workflow-builder-context";
 
 type BaseWorkflowData = {
   title: string;
   accent: string;
   kind: WorkflowNodeKind;
+  runtimeStatus?: "idle" | "running" | "success" | "failed";
+  runtimeMessage?: string | null;
   fileName?: string;
   previewUrl?: string | null;
   outputUrl?: string | null;
@@ -66,6 +77,35 @@ type BaseWorkflowData = {
 
 type WorkflowNodeType = Node<BaseWorkflowData>;
 
+type WorkflowNodeRuntimeStatus = NonNullable<BaseWorkflowData["runtimeStatus"]>;
+
+type WorkflowExecutionStreamEvent =
+  | {
+      type: "workflow-start";
+      workflowRunId: string | null;
+      scope: "FULL" | "GROUP";
+      nodeIds: string[];
+      levelCount: number;
+    }
+  | {
+      type: "level-start";
+      levelIndex: number;
+      nodeIds: string[];
+    }
+  | {
+      type: "node-complete";
+      result: StreamNodeResult;
+    }
+  | {
+      type: "workflow-complete";
+      workflowRunId: string | null;
+      results: StreamNodeResult[];
+    }
+  | {
+      type: "workflow-error";
+      error: string;
+    };
+
 /**
  * Shared visual frame for workflow nodes, including connection handles and delete affordance.
  */
@@ -77,6 +117,8 @@ function NodeShell({
   outputLabel,
   input = true,
   nodeId,
+  runtimeStatus = "idle",
+  runtimeMessage = null,
 }: {
   children: React.ReactNode;
   accent: string;
@@ -85,11 +127,41 @@ function NodeShell({
   outputLabel: string;
   input?: boolean;
   nodeId: string;
+  runtimeStatus?: WorkflowNodeRuntimeStatus;
+  runtimeMessage?: string | null;
 }) {
   const reactFlow = useReactFlow<WorkflowNodeType, Edge>();
+  const statusClasses =
+    runtimeStatus === "running"
+      ? "border-[#7fb0ff] shadow-[0_0_0_1px_rgba(127,176,255,0.55),0_0_32px_rgba(78,125,255,0.28),var(--shadow-elevated)] animate-[pulse_1.6s_ease-in-out_infinite]"
+      : runtimeStatus === "success"
+        ? "border-emerald-400/55 shadow-[0_0_0_1px_rgba(52,211,153,0.25),0_0_24px_rgba(52,211,153,0.18),var(--shadow-elevated)]"
+        : runtimeStatus === "failed"
+          ? "border-red-400/55 shadow-[0_0_0_1px_rgba(248,113,113,0.25),0_0_24px_rgba(248,113,113,0.15),var(--shadow-elevated)]"
+          : "border-[color:var(--border-soft)] shadow-[var(--shadow-elevated)]";
+
+  const statusIcon =
+    runtimeStatus === "running" ? (
+      <LoaderCircle className="h-3.5 w-3.5 animate-spin" strokeWidth={2.2} />
+    ) : runtimeStatus === "success" ? (
+      <CheckCircle2 className="h-3.5 w-3.5" strokeWidth={2.2} />
+    ) : runtimeStatus === "failed" ? (
+      <AlertTriangle className="h-3.5 w-3.5" strokeWidth={2.2} />
+    ) : (
+      <Info className="h-3.5 w-3.5" strokeWidth={2.2} />
+    );
+
+  const statusLabel =
+    runtimeStatus === "running"
+      ? "Running"
+      : runtimeStatus === "success"
+        ? "Done"
+        : runtimeStatus === "failed"
+          ? "Failed"
+          : "Ready";
 
   return (
-    <div className="min-w-[280px] select-none rounded-[22px] border border-[color:var(--border-soft)] bg-[var(--surface-1)] p-4 shadow-[var(--shadow-elevated)] backdrop-blur-xl">
+    <div className={`min-w-[280px] select-none rounded-[22px] border bg-[var(--surface-1)] p-4 backdrop-blur-xl transition-[border-color,box-shadow] duration-300 ${statusClasses}`}>
       {input ? (
         <Handle
           type="target"
@@ -105,8 +177,25 @@ function NodeShell({
           >
             <Icon className="h-5 w-5 text-white" strokeWidth={2.1} />
           </div>
-          <div className="truncate text-[15px] font-semibold tracking-[-0.03em] text-[var(--text-primary)]">
-            {title}
+          <div className="min-w-0">
+            <div className="truncate text-[15px] font-semibold tracking-[-0.03em] text-[var(--text-primary)]">
+              {title}
+            </div>
+            <div
+              className={[
+                "mt-1 inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em]",
+                runtimeStatus === "running"
+                  ? "border-[#7fb0ff]/30 bg-[#7fb0ff]/10 text-[#b8d1ff]"
+                  : runtimeStatus === "success"
+                    ? "border-emerald-400/25 bg-emerald-400/10 text-emerald-200"
+                    : runtimeStatus === "failed"
+                      ? "border-red-400/25 bg-red-400/10 text-red-200"
+                      : "border-[color:var(--border-soft)] bg-[var(--surface-2)] text-[var(--text-muted)]",
+              ].join(" ")}
+            >
+              {statusIcon}
+              {statusLabel}
+            </div>
           </div>
         </div>
         <button
@@ -124,6 +213,22 @@ function NodeShell({
           <Trash2 className="h-4 w-4" strokeWidth={2.1} />
         </button>
       </div>
+      {runtimeMessage ? (
+        <div
+          className={[
+            "mb-4 rounded-xl border px-3 py-2 text-[12px]",
+            runtimeStatus === "failed"
+              ? "border-red-500/25 bg-red-500/10 text-red-200"
+              : runtimeStatus === "success"
+                ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-100"
+                : runtimeStatus === "running"
+                  ? "border-[#7fb0ff]/20 bg-[#7fb0ff]/10 text-[#dce9ff]"
+                  : "border-[color:var(--border-soft)] bg-[var(--surface-2)] text-[var(--text-soft)]",
+          ].join(" ")}
+        >
+          {runtimeMessage}
+        </div>
+      ) : null}
       <div className="space-y-3">{children}</div>
       <div className="mt-4 flex items-center justify-between">
         <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--text-muted)]">
@@ -280,6 +385,8 @@ function TextNode({ id, data }: NodeProps<WorkflowNodeType>) {
       outputLabel="Text output"
       input={false}
       nodeId={id}
+      runtimeStatus={data.runtimeStatus}
+      runtimeMessage={data.runtimeMessage}
     >
       <div>
         <FieldLabel>Textarea</FieldLabel>
@@ -314,6 +421,8 @@ function ImageUploadNode({ id, data }: NodeProps<WorkflowNodeType>) {
       icon={FileImage}
       outputLabel="Image URL"
       nodeId={id}
+      runtimeStatus={data.runtimeStatus}
+      runtimeMessage={data.runtimeMessage}
     >
       <div>
         <FieldLabel>Transloadit upload</FieldLabel>
@@ -418,6 +527,8 @@ function VideoUploadNode({ id, data }: NodeProps<WorkflowNodeType>) {
       icon={Video}
       outputLabel="Video URL"
       nodeId={id}
+      runtimeStatus={data.runtimeStatus}
+      runtimeMessage={data.runtimeMessage}
     >
       <div>
         <FieldLabel>Transloadit upload</FieldLabel>
@@ -549,6 +660,8 @@ function LlmNode({ id, data }: NodeProps<WorkflowNodeType>) {
       outputLabel="LLM output"
       input={false}
       nodeId={id}
+      runtimeStatus={data.runtimeStatus}
+      runtimeMessage={data.runtimeMessage}
     >
       <div>
         <FieldLabel>Model</FieldLabel>
@@ -729,6 +842,8 @@ function CropNode({ id, data }: NodeProps<WorkflowNodeType>) {
       icon={Crop}
       outputLabel="output"
       nodeId={id}
+      runtimeStatus={data.runtimeStatus}
+      runtimeMessage={data.runtimeMessage}
     >
       <div>
         <FieldLabel>image_url</FieldLabel>
@@ -883,6 +998,8 @@ function ExtractFrameNode({ id, data }: NodeProps<WorkflowNodeType>) {
       icon={PanelsTopLeft}
       outputLabel="output"
       nodeId={id}
+      runtimeStatus={data.runtimeStatus}
+      runtimeMessage={data.runtimeMessage}
     >
       <div>
         <FieldLabel>video_url</FieldLabel>
@@ -1168,6 +1285,8 @@ function createWorkflowNode(
       title: nodePresets[kind].title,
       accent: nodePresets[kind].accent,
       kind,
+      runtimeStatus: "idle",
+      runtimeMessage: null,
       ...dataPatch,
     },
   };
@@ -1296,6 +1415,7 @@ function WorkflowCanvasInner() {
   const reactFlow = useReactFlow();
   const handledRequestId = useRef<number | null>(null);
   const canvasFrameRef = useRef<HTMLDivElement | null>(null);
+  const importInputRef = useRef<HTMLInputElement | null>(null);
   const isLight = theme === "light";
 
   /**
@@ -1449,16 +1569,70 @@ function WorkflowCanvasInner() {
     [reactFlow, setEdges, setNodes],
   );
 
+  const clearNodeExecutionState = useCallback(() => {
+    setNodes((current) =>
+      current.map((node) => ({
+        ...node,
+        data: {
+          ...node.data,
+          runtimeStatus: "idle",
+          runtimeMessage: null,
+        },
+      })),
+    );
+  }, [setNodes]);
+
+  const exportWorkflowAsJson = useCallback(() => {
+    const payload: WorkflowExportPayload = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      nodes,
+      edges,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `nextflow-workflow-${Date.now()}.json`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }, [edges, nodes]);
+
+  const importWorkflowFromFile = useCallback(
+    async (file: File) => {
+      const content = await file.text();
+      const parsed = JSON.parse(content) as Partial<WorkflowExportPayload>;
+
+      if (!Array.isArray(parsed.nodes) || !Array.isArray(parsed.edges)) {
+        throw new Error("Invalid workflow JSON. Expected nodes and edges arrays.");
+      }
+
+      const importedNodes = parsed.nodes.map(normalizeImportedNode);
+      setNodes(importedNodes);
+      setEdges(parsed.edges);
+      setWorkflowError(null);
+
+      setTimeout(() => {
+        reactFlow.fitView({ padding: 0.18, duration: 260 });
+      }, 30);
+    },
+    [reactFlow, setEdges, setNodes],
+  );
+
   const runWorkflow = useCallback(
     async (scope: "FULL" | "GROUP") => {
       setIsWorkflowRunning(true);
       setWorkflowError(null);
+      clearNodeExecutionState();
 
       try {
         const response = await fetch("/api/workflows/execute", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            Accept: "application/x-ndjson",
           },
           body: JSON.stringify({
             scope,
@@ -1467,45 +1641,118 @@ function WorkflowCanvasInner() {
           }),
         });
 
-        const result = (await response.json()) as {
-          error?: string;
-          results?: Array<{
-            nodeId: string;
-            nodeType: string;
-            status: string;
-            outputs?: Record<string, unknown>;
-          }>;
-        };
-
-        if (!response.ok || !result.results) {
-          throw new Error(result.error ?? "Workflow execution failed");
+        if (!response.ok || !response.body) {
+          const failure = (await response.json().catch(() => ({ error: undefined }))) as {
+            error?: string;
+          };
+          throw new Error(failure.error ?? "Workflow execution failed");
         }
 
-        setNodes((current) =>
-          current.map((node) => {
-            const runResult = result.results?.find((item) => item.nodeId === node.id);
-            if (!runResult?.outputs) return node;
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let finalResults: StreamNodeResult[] = [];
 
-            const nextData = { ...node.data };
-            const output = runResult.outputs.output;
+        while (true) {
+          const { done, value } = await reader.read();
+          buffer += decoder.decode(value ?? new Uint8Array(), { stream: !done });
 
-            if (node.type === "llm" && typeof output === "string") {
-              nextData.outputText = output;
+          const lines = buffer.split("\n");
+          buffer = lines.pop() ?? "";
+
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed) continue;
+
+            const event = JSON.parse(trimmed) as WorkflowExecutionStreamEvent;
+
+            if (event.type === "workflow-start") {
+              setNodes((current) =>
+                current.map((node) =>
+                  event.nodeIds.includes(node.id)
+                    ? {
+                        ...node,
+                        data: {
+                          ...node.data,
+                          runtimeStatus: "idle",
+                          runtimeMessage: "Queued for execution",
+                        },
+                      }
+                    : node,
+                ),
+              );
             }
 
-            if ((node.type === "crop" || node.type === "extractFrame") && typeof output === "string") {
-              nextData.outputUrl = output;
+            if (event.type === "level-start") {
+              setNodes((current) =>
+                current.map((node) =>
+                  event.nodeIds.includes(node.id)
+                    ? {
+                        ...node,
+                        data: {
+                          ...node.data,
+                          runtimeStatus: "running",
+                          runtimeMessage: "Running now...",
+                        },
+                      }
+                    : node,
+                ),
+              );
             }
 
-            return {
-              ...node,
-              data: nextData,
-            };
-          }),
-        );
+            if (event.type === "node-complete") {
+              setNodes((current) =>
+                current.map((node) =>
+                  node.id === event.result.nodeId
+                    ? applyNodeExecutionResult(node, event.result)
+                    : node,
+                ),
+              );
+            }
+
+            if (event.type === "workflow-complete") {
+              finalResults = event.results;
+            }
+
+            if (event.type === "workflow-error") {
+              throw new Error(event.error);
+            }
+          }
+
+          if (done) {
+            if (buffer.trim()) {
+              const event = JSON.parse(buffer.trim()) as WorkflowExecutionStreamEvent;
+              if (event.type === "workflow-complete") {
+                finalResults = event.results;
+              } else if (event.type === "workflow-error") {
+                throw new Error(event.error);
+              }
+            }
+            break;
+          }
+        }
+
+        if (finalResults.length === 0) {
+          throw new Error("Workflow execution finished without results.");
+        }
 
         refreshHistory();
       } catch (error) {
+        setNodes((current) =>
+          current.map((node) =>
+            node.data.runtimeStatus === "running"
+              ? {
+                  ...node,
+                  data: {
+                    ...node.data,
+                    runtimeStatus: "failed",
+                    runtimeMessage:
+                      error instanceof Error ? error.message : "Workflow execution failed",
+                  },
+                }
+              : node,
+          ),
+        );
         setWorkflowError(
           error instanceof Error ? error.message : "Workflow execution failed",
         );
@@ -1513,7 +1760,7 @@ function WorkflowCanvasInner() {
         setIsWorkflowRunning(false);
       }
     },
-    [edges, nodes, refreshHistory, setNodes],
+    [clearNodeExecutionState, edges, nodes, refreshHistory, setNodes],
   );
 
   return (
@@ -1542,18 +1789,41 @@ function WorkflowCanvasInner() {
           <ThemeToggle />
           <button
             type="button"
-            className="inline-flex h-11 items-center gap-2 rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-1)] px-4 text-[13px] font-medium text-[var(--text-secondary)] shadow-[var(--shadow-panel)] backdrop-blur-xl transition-colors hover:bg-[var(--surface-3)]"
+            onClick={exportWorkflowAsJson}
+            disabled={nodes.length === 0}
+            className="inline-flex h-11 items-center gap-2 rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-1)] px-4 text-[13px] font-medium text-[var(--text-secondary)] shadow-[var(--shadow-panel)] backdrop-blur-xl transition-colors hover:bg-[var(--surface-3)] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <Share2 className="h-4 w-4" strokeWidth={2.1} />
-            Share
+            <Download className="h-4 w-4" strokeWidth={2.1} />
+            Export JSON
           </button>
           <button
             type="button"
+            onClick={() => importInputRef.current?.click()}
             className="inline-flex h-11 items-center gap-2 rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-1)] px-4 text-[13px] font-medium text-[var(--text-secondary)] shadow-[var(--shadow-panel)] backdrop-blur-xl transition-colors hover:bg-[var(--surface-3)]"
           >
-            <AppWindow className="h-4 w-4" strokeWidth={2.1} />
-            Turn workflow into app
+            <FileUp className="h-4 w-4" strokeWidth={2.1} />
+            Import JSON
           </button>
+          <input
+            ref={importInputRef}
+            type="file"
+            accept="application/json,.json"
+            className="hidden"
+            onChange={async (event) => {
+              const file = event.target.files?.[0];
+              if (!file) return;
+
+              try {
+                await importWorkflowFromFile(file);
+              } catch (error) {
+                setWorkflowError(
+                  error instanceof Error ? error.message : "Unable to import workflow JSON",
+                );
+              } finally {
+                event.target.value = "";
+              }
+            }}
+          />
         </div>
         <div className="flex items-center gap-2 rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-1)] p-2 shadow-[var(--shadow-panel)] backdrop-blur-xl">
           <button
@@ -1740,7 +2010,6 @@ function WorkflowCanvasInner() {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
-        fitView
         fitViewOptions={{ padding: 0.16, minZoom: 0.55 }}
         minZoom={0.35}
         maxZoom={1.8}
