@@ -145,6 +145,26 @@ export async function listWorkflowRuns(userId: string, take = 25) {
 }
 
 /**
+ * Deletes a workflow run owned by the given user. Related node runs are removed via cascade.
+ */
+export async function deleteWorkflowRun(params: {
+  userId: string;
+  workflowRunId: string;
+}) {
+  const prisma = await getPrismaClient();
+  if (!prisma) return false;
+
+  const deleted = await prisma.workflowRun.deleteMany({
+    where: {
+      id: params.workflowRunId,
+      userId: params.userId,
+    },
+  });
+
+  return deleted.count > 0;
+}
+
+/**
  * Seeds a workflow run and one pending node-run record per node about to execute.
  */
 export async function beginWorkflowRun(params: {

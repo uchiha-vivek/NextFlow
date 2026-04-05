@@ -19,17 +19,25 @@ import {
 } from "@xyflow/react";
 import type { Connection, Edge, Node, NodeProps } from "@xyflow/react";
 import {
+  AppWindow,
   LoaderCircle,
   Crop,
+  ChevronRight,
+  Hand,
   FileImage,
   FileText,
   Maximize2,
   Minus,
+  MoonStar,
+  MousePointer2,
   PanelsTopLeft,
   Plus,
+  Search,
+  Share2,
   Sparkles,
   Trash2,
   Video,
+  X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -1044,59 +1052,238 @@ const nodePresets: Record<
   },
 };
 
-const initialNodes: WorkflowNodeType[] = [
+const initialNodes: WorkflowNodeType[] = [];
+
+const initialEdges: Edge[] = [];
+
+type StarterPreset = {
+  id: string;
+  title: string;
+  description: string;
+  badge?: string;
+  image: string;
+};
+
+const starterPresets: StarterPreset[] = [
   {
-    id: "text-1",
-    type: "text",
-    position: { x: 70, y: 120 },
-    data: {
-      title: "Text Node",
-      accent: nodePresets.text.accent,
-      kind: "text",
-    },
+    id: "empty",
+    title: "Empty Workflow",
+    description: "Start from a blank workflow canvas.",
+    image: "linear-gradient(135deg,#252525_0%,#171717_100%)",
   },
   {
-    id: "imageUpload-1",
-    type: "imageUpload",
-    position: { x: 430, y: 80 },
-    data: {
-      title: "Upload Image Node",
-      accent: nodePresets.imageUpload.accent,
-      kind: "imageUpload",
-    },
+    id: "image-generator",
+    title: "Image Generator",
+    description: "Simple text and image prompt generation.",
+    image: "linear-gradient(135deg,#5677c8_0%,#1e2635_100%)",
   },
   {
-    id: "llm-1",
-    type: "llm",
-    position: { x: 430, y: 420 },
-    data: {
-      title: "Run Any LLM Node",
-      accent: nodePresets.llm.accent,
-      kind: "llm",
-    },
+    id: "video-generator",
+    title: "Video Generator",
+    description: "Generate video inputs with an upload-driven flow.",
+    image: "linear-gradient(135deg,#2b384f_0%,#0f1118_100%)",
+  },
+  {
+    id: "upscale-enhance",
+    title: "8K Upscaling & Enhancer",
+    description: "Upscaling a low resolution image to 8K.",
+    image: "linear-gradient(135deg,#4d3d2b_0%,#171310_100%)",
+  },
+  {
+    id: "image-caption",
+    title: "LLM Image Captioning",
+    description: "Generate a prompt from an image with GPT-5.",
+    badge: "PRO",
+    image: "linear-gradient(135deg,#3c4031_0%,#151710_100%)",
+  },
+  {
+    id: "prompt-to-workflow",
+    title: "Prompt to Workflow",
+    description: "Generate a workflow from a prompt.",
+    badge: "PRO",
+    image: "linear-gradient(135deg,#3a2942_0%,#151018_100%)",
   },
 ];
 
-const initialEdges: Edge[] = [
+const toolItems: Array<{
+  kind: WorkflowNodeKind;
+  category: "Image" | "Video" | "Text" | "AI";
+  label: string;
+  description: string;
+  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+}> = [
   {
-    id: "text-llm",
-    source: "text-1",
-    target: "llm-1",
-    targetHandle: "user",
-    type: "smoothstep",
-    animated: true,
-    style: { stroke: "#4e7dff", strokeWidth: 2 },
+    kind: "text",
+    category: "Text",
+    label: "Text",
+    description: "Prompt, notes, or instructions",
+    icon: FileText,
   },
   {
-    id: "image-llm",
-    source: "imageUpload-1",
-    target: "llm-1",
-    targetHandle: "images",
-    type: "smoothstep",
-    animated: true,
-    style: { stroke: "#4e7dff", strokeWidth: 2 },
+    kind: "imageUpload",
+    category: "Image",
+    label: "Image",
+    description: "Upload an image input",
+    icon: FileImage,
+  },
+  {
+    kind: "videoUpload",
+    category: "Video",
+    label: "Video",
+    description: "Upload a video input",
+    icon: Video,
+  },
+  {
+    kind: "llm",
+    category: "AI",
+    label: "LLM",
+    description: "Run GPT on text or images",
+    icon: Sparkles,
+  },
+  {
+    kind: "crop",
+    category: "Image",
+    label: "Crop",
+    description: "Crop an image output",
+    icon: Crop,
+  },
+  {
+    kind: "extractFrame",
+    category: "Video",
+    label: "Extract",
+    description: "Grab a frame from video",
+    icon: PanelsTopLeft,
   },
 ];
+
+function createWorkflowNode(
+  kind: WorkflowNodeKind,
+  id: string,
+  position: { x: number; y: number },
+  dataPatch: Partial<BaseWorkflowData> = {},
+): WorkflowNodeType {
+  return {
+    id,
+    type: nodePresets[kind].type,
+    position,
+    data: {
+      title: nodePresets[kind].title,
+      accent: nodePresets[kind].accent,
+      kind,
+      ...dataPatch,
+    },
+  };
+}
+
+function buildStarterTemplate(kind: StarterPreset["id"]): {
+  nodes: WorkflowNodeType[];
+  edges: Edge[];
+} {
+  const createEdge = (
+    id: string,
+    source: string,
+    target: string,
+    targetHandle?: string,
+  ): Edge => ({
+    id,
+    source,
+    target,
+    targetHandle,
+    type: "smoothstep",
+    animated: true,
+    markerEnd: {
+      type: MarkerType.ArrowClosed,
+      color: "#7fb0ff",
+    },
+    style: { stroke: "#7fb0ff", strokeWidth: 2.4, strokeDasharray: "6 6" },
+  });
+
+  if (kind === "image-generator") {
+    return {
+      nodes: [
+        createWorkflowNode("text", "text-seed", { x: 70, y: 160 }, {
+          textValue: "Describe a cinematic product image with dramatic lighting.",
+          outputText: "Describe a cinematic product image with dramatic lighting.",
+        }),
+        createWorkflowNode("imageUpload", "image-upload-seed", { x: 430, y: 110 }),
+        createWorkflowNode("llm", "llm-seed", { x: 450, y: 420 }, {
+          userMessage: "Turn the uploaded image and prompt into a polished campaign concept.",
+        }),
+      ],
+      edges: [
+        createEdge("edge-text-llm", "text-seed", "llm-seed", "user"),
+        createEdge("edge-image-llm", "image-upload-seed", "llm-seed", "images"),
+      ],
+    };
+  }
+
+  if (kind === "video-generator") {
+    return {
+      nodes: [
+        createWorkflowNode("videoUpload", "video-upload-seed", { x: 70, y: 140 }),
+        createWorkflowNode("extractFrame", "extract-frame-seed", { x: 430, y: 130 }, {
+          timestampInput: "50%",
+        }),
+        createWorkflowNode("llm", "llm-seed", { x: 790, y: 180 }, {
+          userMessage: "Describe this keyframe like a motion art director.",
+        }),
+      ],
+      edges: [
+        createEdge("edge-video-frame", "video-upload-seed", "extract-frame-seed"),
+        createEdge("edge-frame-llm", "extract-frame-seed", "llm-seed", "images"),
+      ],
+    };
+  }
+
+  if (kind === "upscale-enhance") {
+    return {
+      nodes: [
+        createWorkflowNode("imageUpload", "image-upload-enhance", { x: 80, y: 170 }),
+        createWorkflowNode("crop", "crop-enhance", { x: 420, y: 170 }, {
+          xPercent: "10",
+          yPercent: "10",
+          widthPercent: "80",
+          heightPercent: "80",
+        }),
+      ],
+      edges: [createEdge("edge-image-crop", "image-upload-enhance", "crop-enhance")],
+    };
+  }
+
+  if (kind === "image-caption") {
+    return {
+      nodes: [
+        createWorkflowNode("imageUpload", "image-upload-caption", { x: 80, y: 150 }),
+        createWorkflowNode("text", "text-caption", { x: 80, y: 390 }, {
+          textValue: "Caption this image with a concise creative summary.",
+          outputText: "Caption this image with a concise creative summary.",
+        }),
+        createWorkflowNode("llm", "llm-caption", { x: 430, y: 220 }),
+      ],
+      edges: [
+        createEdge("edge-caption-image", "image-upload-caption", "llm-caption", "images"),
+        createEdge("edge-caption-text", "text-caption", "llm-caption", "user"),
+      ],
+    };
+  }
+
+  if (kind === "prompt-to-workflow") {
+    return {
+      nodes: [
+        createWorkflowNode("text", "prompt-text", { x: 80, y: 180 }, {
+          textValue: "Create a product marketing workflow for one image and one video.",
+          outputText: "Create a product marketing workflow for one image and one video.",
+        }),
+        createWorkflowNode("llm", "prompt-llm", { x: 440, y: 180 }, {
+          systemPrompt: "You are a workflow planner. Return a short structured workflow outline.",
+        }),
+      ],
+      edges: [createEdge("edge-prompt-llm", "prompt-text", "prompt-llm", "user")],
+    };
+  }
+
+  return { nodes: [], edges: [] };
+}
 
 function WorkflowCanvasInner() {
   const { request, refreshHistory } = useWorkflowBuilder();
@@ -1104,8 +1291,12 @@ function WorkflowCanvasInner() {
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [isWorkflowRunning, setIsWorkflowRunning] = useState(false);
   const [workflowError, setWorkflowError] = useState<string | null>(null);
+  const [toolsOpen, setToolsOpen] = useState(false);
+  const [toolAnchorPosition, setToolAnchorPosition] = useState<{ x: number; y: number } | null>(null);
+  const [toolSearch, setToolSearch] = useState("");
   const reactFlow = useReactFlow();
   const handledRequestId = useRef<number | null>(null);
+  const canvasFrameRef = useRef<HTMLDivElement | null>(null);
 
   /**
    * Normalizes new edges so ad-hoc user connections always inherit the workflow canvas styling.
@@ -1154,6 +1345,27 @@ function WorkflowCanvasInner() {
     ]);
   }, [reactFlow, request, setNodes]);
 
+  useEffect(() => {
+    const frame = canvasFrameRef.current;
+    const pane = frame?.querySelector(".react-flow__pane") as HTMLElement | null;
+    if (!pane) return;
+
+    const handleDoubleClick: EventListener = (event) => {
+      if (!(event instanceof MouseEvent)) return;
+
+      const nextPosition = reactFlow.screenToFlowPosition({
+        x: event.clientX,
+        y: event.clientY,
+      });
+
+      setToolAnchorPosition(nextPosition);
+      setToolsOpen(true);
+    };
+
+    pane.addEventListener("dblclick", handleDoubleClick);
+    return () => pane.removeEventListener("dblclick", handleDoubleClick);
+  }, [reactFlow]);
+
   /**
    * Keeps the minimap colors aligned with the semantic node type palette used in the main canvas.
    */
@@ -1177,6 +1389,64 @@ function WorkflowCanvasInner() {
   const selectedNodeCount = useMemo(
     () => nodes.filter((node) => node.selected).length,
     [nodes],
+  );
+  const filteredToolItems = useMemo(() => {
+    const query = toolSearch.trim().toLowerCase();
+    if (!query) return toolItems;
+
+    return toolItems.filter(
+      (item) =>
+        item.label.toLowerCase().includes(query) ||
+        item.category.toLowerCase().includes(query) ||
+        item.description.toLowerCase().includes(query),
+    );
+  }, [toolSearch]);
+  const groupedToolItems = useMemo(() => {
+    const orderedCategories = ["Image", "Video", "Text", "AI"] as const;
+
+    return orderedCategories
+      .map((category) => ({
+        category,
+        items: filteredToolItems.filter((item) => item.category === category),
+      }))
+      .filter((group) => group.items.length > 0);
+  }, [filteredToolItems]);
+
+  const addNodeAtPosition = useCallback(
+    (kind: WorkflowNodeKind, position?: { x: number; y: number }) => {
+      const viewport = reactFlow.getViewport();
+      const fallbackPosition = {
+        x: Math.round((-viewport.x + 380) / viewport.zoom),
+        y: Math.round((-viewport.y + 220) / viewport.zoom),
+      };
+      const nextPosition = position ?? toolAnchorPosition ?? fallbackPosition;
+      const nextId = `${kind}-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+
+      setNodes((current) => [...current, createWorkflowNode(kind, nextId, nextPosition)]);
+      setToolsOpen(false);
+      setToolSearch("");
+    },
+    [reactFlow, setNodes, toolAnchorPosition],
+  );
+
+  const applyStarterPreset = useCallback(
+    (presetId: StarterPreset["id"]) => {
+      if (presetId === "empty") {
+        setNodes([]);
+        setEdges([]);
+        return;
+      }
+
+      const template = buildStarterTemplate(presetId);
+      setNodes(template.nodes);
+      setEdges(template.edges);
+      setToolSearch("");
+      setTimeout(() => {
+        reactFlow.fitView({ padding: 0.2, duration: 260 });
+      }, 30);
+      setToolsOpen(false);
+    },
+    [reactFlow, setEdges, setNodes],
   );
 
   const runWorkflow = useCallback(
@@ -1247,20 +1517,54 @@ function WorkflowCanvasInner() {
   );
 
   return (
-    <div className="relative h-full overflow-hidden rounded-[28px] border border-white/[0.06] bg-[radial-gradient(circle_at_top,rgba(78,125,255,0.12),transparent_28%),linear-gradient(180deg,#171717_0%,#101010_100%)] shadow-[0_24px_70px_rgba(0,0,0,0.34)] select-none">
-      {emptyState ? (
-        <div className="pointer-events-none absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 rounded-3xl border border-white/10 bg-black/35 px-6 py-5 text-center backdrop-blur-xl">
-          <div className="text-[18px] font-semibold tracking-[-0.03em] text-white">
-            Add nodes from Quick Access
-          </div>
-          <div className="mt-2 text-[13px] text-zinc-400">
-            Text, image, video, LLM, crop, and extract-frame nodes are ready.
+    <div
+      ref={canvasFrameRef}
+      className="relative h-full overflow-hidden rounded-[30px] border border-white/[0.06] bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.06),transparent_20%),linear-gradient(180deg,#121212_0%,#0c0c0d_100%)] shadow-[0_24px_70px_rgba(0,0,0,0.34)] select-none"
+    >
+      <div className="absolute left-5 top-5 z-10">
+        <div className="inline-flex items-center gap-3 rounded-[18px] border border-white/10 bg-[#191919]/90 px-4 py-3 shadow-[0_12px_30px_rgba(0,0,0,0.35)] backdrop-blur-xl">
+          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/[0.05] text-white">
+            <PanelsTopLeft className="h-4 w-4" strokeWidth={2.2} />
+          </span>
+          <div className="text-[15px] font-semibold tracking-[-0.03em] text-white">
+            Untitled
           </div>
         </div>
-      ) : null}
+      </div>
 
       <div className="absolute right-5 top-5 z-10 flex flex-col items-end gap-2">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-[#191919]/90 text-zinc-200 shadow-[0_12px_30px_rgba(0,0,0,0.35)] backdrop-blur-xl transition-colors hover:bg-[#212121]"
+            aria-label="Theme toggle"
+            title="Theme toggle"
+          >
+            <MoonStar className="h-4 w-4" strokeWidth={2.1} />
+          </button>
+          <button
+            type="button"
+            className="inline-flex h-11 items-center gap-2 rounded-2xl border border-white/10 bg-[#191919]/90 px-4 text-[13px] font-medium text-zinc-200 shadow-[0_12px_30px_rgba(0,0,0,0.35)] backdrop-blur-xl transition-colors hover:bg-[#212121]"
+          >
+            <Share2 className="h-4 w-4" strokeWidth={2.1} />
+            Share
+          </button>
+          <button
+            type="button"
+            className="inline-flex h-11 items-center gap-2 rounded-2xl border border-white/10 bg-[#191919]/90 px-4 text-[13px] font-medium text-zinc-200 shadow-[0_12px_30px_rgba(0,0,0,0.35)] backdrop-blur-xl transition-colors hover:bg-[#212121]"
+          >
+            <AppWindow className="h-4 w-4" strokeWidth={2.1} />
+            Turn workflow into app
+          </button>
+        </div>
         <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-[#0f1013]/90 p-2 shadow-[0_12px_30px_rgba(0,0,0,0.35)] backdrop-blur-xl">
+          <button
+            type="button"
+            onClick={() => setToolsOpen((current) => !current)}
+            className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2 text-[13px] font-semibold text-zinc-100 transition-colors hover:bg-white/[0.06]"
+          >
+            Tools
+          </button>
           <button
             type="button"
             onClick={() => void runWorkflow("FULL")}
@@ -1296,6 +1600,141 @@ function WorkflowCanvasInner() {
         ) : null}
       </div>
 
+      <div
+        className={[
+          "absolute inset-0 z-20 flex items-center justify-center bg-black/30 backdrop-blur-[2px] transition-opacity duration-200",
+          toolsOpen ? "opacity-100" : "pointer-events-none opacity-0",
+        ].join(" ")}
+      >
+        <div
+          className={[
+            "w-[320px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-[22px] border border-white/10 bg-[#0a0a0b]/96 shadow-[0_28px_80px_rgba(0,0,0,0.52)] backdrop-blur-2xl transition-all duration-200",
+            toolsOpen ? "translate-y-0 scale-100" : "translate-y-3 scale-[0.98]",
+          ].join(" ")}
+          onClick={(event) => event.stopPropagation()}
+        >
+          <div className="border-b border-white/[0.08] px-3 py-2.5">
+            <div className="flex items-center gap-2.5 rounded-[16px] border border-white/8 bg-white/[0.02] px-3 py-2.5">
+              <Search className="h-4 w-4 shrink-0 text-zinc-500" strokeWidth={2.1} />
+              <input
+                value={toolSearch}
+                onChange={(event) => setToolSearch(event.target.value)}
+                placeholder="Search nodes or models..."
+                className="w-full bg-transparent text-[14px] tracking-[-0.03em] text-zinc-100 outline-none placeholder:text-zinc-500"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setToolsOpen(false);
+                  setToolSearch("");
+                }}
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl text-zinc-500 transition-colors hover:bg-white/[0.06] hover:text-white"
+                aria-label="Close tools"
+                title="Close tools"
+              >
+                <X className="h-4 w-4" strokeWidth={2.1} />
+              </button>
+            </div>
+          </div>
+
+          <div className="sidebar-scrollbar max-h-[62vh] overflow-y-auto px-2.5 py-2.5">
+            {groupedToolItems.length > 0 ? (
+              groupedToolItems.map((group) => (
+                <div key={group.category} className="mb-4 last:mb-0">
+                  <div className="mb-1.5 flex items-center gap-2 px-2 text-[12px] tracking-[-0.02em] text-zinc-500">
+                    <span className="flex h-4 w-4 items-center justify-center rounded-md bg-white/[0.06]">
+                      {group.category === "Image" ? (
+                        <FileImage className="h-3 w-3" strokeWidth={2.1} />
+                      ) : group.category === "Video" ? (
+                        <Video className="h-3 w-3" strokeWidth={2.1} />
+                      ) : group.category === "Text" ? (
+                        <FileText className="h-3 w-3" strokeWidth={2.1} />
+                      ) : (
+                        <Sparkles className="h-3 w-3" strokeWidth={2.1} />
+                      )}
+                    </span>
+                    {group.category}
+                  </div>
+
+                  <div className="space-y-1">
+                    {group.items.map(({ kind, label, description }) => (
+                      <button
+                        key={kind}
+                        type="button"
+                        onClick={() => addNodeAtPosition(kind)}
+                        className="flex w-full items-center gap-3 rounded-[14px] px-3 py-2.5 text-left text-white transition-colors hover:bg-white/[0.08]"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <div className="text-[14px] font-medium tracking-[-0.03em] text-white">
+                            {label}
+                          </div>
+                          <div className="mt-0.5 text-[11px] leading-4 text-zinc-500">
+                            {description}
+                          </div>
+                        </div>
+                        <ChevronRight className="h-4 w-4 shrink-0 text-zinc-500" strokeWidth={2.2} />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="px-2 py-8 text-center">
+                <div className="text-[15px] font-medium tracking-[-0.03em] text-white">
+                  No matching tools
+                </div>
+                <div className="mt-2 text-[13px] text-zinc-500">
+                  Try searching for image, video, text, or llm.
+                </div>
+              </div>
+            )}
+
+            <div className="mt-4 border-t border-white/[0.08] pt-4">
+              <div className="mb-2 px-2 text-[12px] tracking-[-0.02em] text-zinc-500">
+                Starter flows
+              </div>
+              <div className="space-y-1">
+                {starterPresets.map((preset) => (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    onClick={() => applyStarterPreset(preset.id)}
+                    className="flex w-full items-center gap-3 rounded-[14px] px-3 py-2.5 text-left transition-colors hover:bg-white/[0.08]"
+                  >
+                    <div
+                      className="h-9 w-9 shrink-0 rounded-xl border border-white/8"
+                      style={{ background: preset.image }}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-[13px] font-medium tracking-[-0.03em] text-white">
+                        {preset.title}
+                      </div>
+                      <div className="mt-0.5 truncate text-[11px] text-zinc-500">
+                        {preset.description}
+                      </div>
+                    </div>
+                    <ChevronRight className="h-4 w-4 shrink-0 text-zinc-600" strokeWidth={2.2} />
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {emptyState ? (
+        <div className="pointer-events-none absolute inset-0 z-[5] flex items-center justify-center px-6">
+          <div className="text-center">
+            <div className="text-[38px] font-semibold tracking-[-0.06em] text-white/88">
+              Add a node
+            </div>
+            <div className="mt-3 text-[18px] tracking-[-0.03em] text-zinc-400">
+              Double click anywhere on the canvas to open tools
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -1328,12 +1767,13 @@ function WorkflowCanvasInner() {
         nodesConnectable
         connectOnClick={false}
         elementsSelectable
+        onPaneClick={() => setToolsOpen(false)}
       >
         <Background
           variant={BackgroundVariant.Dots}
-          gap={22}
-          size={1.2}
-          color="#2f3441"
+          gap={24}
+          size={1.35}
+          color="#24262d"
         />
         <MiniMap
           pannable
@@ -1344,33 +1784,59 @@ function WorkflowCanvasInner() {
         />
       </ReactFlow>
 
-      <div className="absolute bottom-5 left-5 z-10 overflow-hidden rounded-2xl border border-white/10 bg-[#0e0f12]/90 shadow-[0_12px_30px_rgba(0,0,0,0.35)] backdrop-blur-xl">
+      <div className="absolute bottom-5 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1 rounded-[22px] border border-white/10 bg-[#151515]/92 p-2 shadow-[0_12px_30px_rgba(0,0,0,0.35)] backdrop-blur-xl">
         <button
           type="button"
-          onClick={() => reactFlow.zoomIn({ duration: 180 })}
-          className="flex h-8 w-8 items-center justify-center border-b border-white/10 bg-[#17191d] text-white transition-colors hover:bg-[#20242b]"
-          aria-label="Zoom in"
-          title="Zoom in"
+          onClick={() => setToolsOpen(true)}
+          className="flex h-11 w-11 items-center justify-center rounded-2xl text-zinc-100 transition-colors hover:bg-white/[0.06]"
+          aria-label="Open tools"
+          title="Open tools"
         >
-          <Plus className="h-3.5 w-3.5" strokeWidth={2.4} />
+          <Plus className="h-5 w-5" strokeWidth={2.3} />
         </button>
         <button
           type="button"
+          className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/[0.06] text-zinc-100"
+          aria-label="Select mode"
+          title="Select mode"
+        >
+          <MousePointer2 className="h-4 w-4" strokeWidth={2.2} />
+        </button>
+        <button
+          type="button"
+          className="flex h-11 w-11 items-center justify-center rounded-2xl text-zinc-100 transition-colors hover:bg-white/[0.06]"
+          aria-label="Pan mode"
+          title="Pan mode"
+        >
+          <Hand className="h-4 w-4" strokeWidth={2.2} />
+        </button>
+        <div className="mx-1 h-7 w-px bg-white/10" />
+        <button
+          type="button"
           onClick={() => reactFlow.zoomOut({ duration: 180 })}
-          className="flex h-8 w-8 items-center justify-center border-b border-white/10 bg-[#17191d] text-white transition-colors hover:bg-[#20242b]"
+          className="flex h-11 w-11 items-center justify-center rounded-2xl text-zinc-100 transition-colors hover:bg-white/[0.06]"
           aria-label="Zoom out"
           title="Zoom out"
         >
-          <Minus className="h-3.5 w-3.5" strokeWidth={2.4} />
+          <Minus className="h-4 w-4" strokeWidth={2.3} />
+        </button>
+        <button
+          type="button"
+          onClick={() => reactFlow.zoomIn({ duration: 180 })}
+          className="flex h-11 w-11 items-center justify-center rounded-2xl text-zinc-100 transition-colors hover:bg-white/[0.06]"
+          aria-label="Zoom in"
+          title="Zoom in"
+        >
+          <Plus className="h-4 w-4" strokeWidth={2.3} />
         </button>
         <button
           type="button"
           onClick={() => reactFlow.fitView({ padding: 0.16, duration: 240 })}
-          className="flex h-8 w-8 items-center justify-center bg-[#17191d] text-white transition-colors hover:bg-[#20242b]"
+          className="flex h-11 w-11 items-center justify-center rounded-2xl text-zinc-100 transition-colors hover:bg-white/[0.06]"
           aria-label="Fit view"
           title="Fit view"
         >
-          <Maximize2 className="h-3.5 w-3.5" strokeWidth={2.1} />
+          <Maximize2 className="h-4 w-4" strokeWidth={2.1} />
         </button>
       </div>
     </div>

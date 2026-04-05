@@ -20,7 +20,13 @@
   }
 }
 
-body {
+html,
+body,
+button,
+input,
+textarea,
+select,
+[role="button"] {
   background: var(--background);
   color: var(--foreground);
   font-family: "Suisse Intl", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
