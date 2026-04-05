@@ -91,3 +91,20 @@ node --test --experimental-test-isolation=none .workflow-tests\tests\workflow-no
     <img src="./assets/test-case1.png" width="650" height="700" alt="Workflow test case screenshot" style="margin: 0 15px;" />
   </a>
 </p>
+
+
+## Text and LLM workflow
+
+
+[Loom video](https://www.loom.com/share/07835b433a0a4075878ec381f225be5c)
+
+
+## Image uploading, Cropping and LL workflow 
+
+
+[https://www.loom.com/share/9aa3215a6c814841b131c54001aab38d](https://www.loom.com/share/9aa3215a6c814841b131c54001aab38d)
+
+
+
+
+
