@@ -161,7 +161,7 @@ function NodeShell({
           : "Ready";
 
   return (
-    <div className={`min-w-[280px] select-none rounded-[22px] border bg-[var(--surface-1)] p-4 backdrop-blur-xl transition-[border-color,box-shadow] duration-300 ${statusClasses}`}>
+    <div className={`min-w-[240px] select-none rounded-[22px] border bg-[var(--surface-1)] p-3 backdrop-blur-xl transition-[border-color,box-shadow] duration-300 ${statusClasses}`}>
       {input ? (
         <Handle
           type="target"
@@ -170,7 +170,7 @@ function NodeShell({
           className="!h-4 !w-4 !border-2 !border-[#0f1012] !bg-[#7fb0ff] !shadow-[0_0_0_4px_rgba(78,125,255,0.18)]"
         />
       ) : null}
-      <div className="mb-4 flex items-center gap-3">
+      <div className="mb-3 flex items-center gap-3">
         <div className="flex min-w-0 flex-1 items-center gap-3">
           <div
             className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${accent}`}
@@ -230,7 +230,7 @@ function NodeShell({
         </div>
       ) : null}
       <div className="space-y-3">{children}</div>
-      <div className="mt-4 flex items-center justify-between">
+      <div className="mt-3 flex items-center justify-between">
         <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--text-muted)]">
           {outputLabel}
         </div>
@@ -399,7 +399,7 @@ function TextNode({ id, data }: NodeProps<WorkflowNodeType>) {
               outputText: nextValue,
             });
           }}
-          className={`${inputClassName} mt-2 min-h-[110px] resize-none`}
+          className={`${inputClassName} mt-2 min-h-[72px] resize-none`}
         />
       </div>
     </NodeShell>
@@ -487,10 +487,10 @@ function ImageUploadNode({ id, data }: NodeProps<WorkflowNodeType>) {
           <img
             src={preview}
             alt="Uploaded preview"
-            className="mt-3 h-32 w-full rounded-lg object-cover"
+            className="mt-3 h-24 w-full rounded-lg object-cover"
           />
         ) : (
-          <div className="mt-3 flex h-32 items-center justify-center rounded-lg bg-white/[0.03] text-[13px] text-zinc-600">
+          <div className="mt-3 flex h-24 items-center justify-center rounded-lg bg-white/[0.03] text-[13px] text-zinc-600">
             Preview after upload
           </div>
         )}
@@ -592,7 +592,7 @@ function VideoUploadNode({ id, data }: NodeProps<WorkflowNodeType>) {
           <video
             src={preview}
             controls
-            className="mt-3 h-36 w-full rounded-lg object-cover"
+            className="mt-3 h-24 w-full rounded-lg object-cover"
           />
         ) : (
           <div className="mt-3 flex h-36 items-center justify-center rounded-lg bg-white/[0.03] text-[13px] text-zinc-600">
@@ -688,7 +688,7 @@ function LlmNode({ id, data }: NodeProps<WorkflowNodeType>) {
               systemPrompt: event.target.value,
             })
           }
-          className={`${inputClassName} mt-2 min-h-[80px] resize-none`}
+          className={`${inputClassName} mt-2 min-h-[64px] resize-none`}
           disabled={Boolean(connectedSystemPrompt)}
         />
         {connectedSystemPrompt ? (
@@ -707,7 +707,7 @@ function LlmNode({ id, data }: NodeProps<WorkflowNodeType>) {
               userMessage: event.target.value,
             })
           }
-          className={`${inputClassName} mt-2 min-h-[96px] resize-none`}
+          className={`${inputClassName} mt-2 min-h-[72px] resize-none`}
           disabled={Boolean(connectedUserMessage)}
         />
         {connectedUserMessage ? (
@@ -803,7 +803,7 @@ function LlmNode({ id, data }: NodeProps<WorkflowNodeType>) {
       <div className="rounded-xl border border-white/8 bg-black/20 p-3">
         <FieldLabel>Output</FieldLabel>
         {outputText ? (
-          <div className="mt-3 space-y-3 rounded-2xl border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] p-4 text-[13px] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+          <div className="mt-3 space-y-3 rounded-2xl border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] p-3 text-[13px] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
             {renderFormattedText(outputText)}
           </div>
         ) : (
@@ -962,7 +962,7 @@ function CropNode({ id, data }: NodeProps<WorkflowNodeType>) {
             <img
               src={outputUrl}
               alt="Cropped output"
-              className="mt-3 h-32 w-full rounded-lg object-cover"
+              className="mt-3 h-24 w-full rounded-lg object-cover"
             />
           </>
         ) : (
@@ -1109,7 +1109,7 @@ function ExtractFrameNode({ id, data }: NodeProps<WorkflowNodeType>) {
             <img
               src={outputUrl}
               alt="Extracted frame output"
-              className="mt-3 h-32 w-full rounded-lg object-cover"
+              className="mt-3 h-24 w-full rounded-lg object-cover"
             />
           </>
         ) : (
@@ -1271,6 +1271,8 @@ const toolItems: Array<{
   },
 ];
 
+const DEFAULT_NODE_WIDTH = 260;
+
 function createWorkflowNode(
   kind: WorkflowNodeKind,
   id: string,
@@ -1281,6 +1283,9 @@ function createWorkflowNode(
     id,
     type: nodePresets[kind].type,
     position,
+    style: {
+      width: DEFAULT_NODE_WIDTH,
+    },
     data: {
       title: nodePresets[kind].title,
       accent: nodePresets[kind].accent,
@@ -1456,6 +1461,9 @@ function WorkflowCanvasInner() {
         id: `${request.kind}-${request.id}`,
         type: preset.type,
         position: { x, y },
+        style: {
+          width: DEFAULT_NODE_WIDTH,
+        },
         data: {
           title: preset.title,
           accent: preset.accent,
