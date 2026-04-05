@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { runs, tasks } from "@trigger.dev/sdk/v3";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { useLogger, withEvlog } from "@/lib/evlog";
 import {
   beginWorkflowRun,
   finishWorkflowRun,
@@ -119,12 +120,14 @@ export const runtime = "nodejs";
 /**
  * Executes either a full workflow or the selected subset, level by level, while syncing run history.
  */
-export async function POST(request: Request) {
+export const POST = withEvlog(async (request: Request) => {
   const startedAt = Date.now();
+  const log = useLogger();
 
   try {
     const { userId } = await auth();
     if (!userId) {
+      log.set({ auth: { status: "unauthorized" } });
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -136,8 +139,22 @@ export async function POST(request: Request) {
         : payload.nodes.filter((node) => node.selected);
 
     if (activeNodes.length === 0) {
+      log.set({
+        auth: { userId },
+        workflow: { scope: payload.scope, activeNodeCount: 0 },
+      });
       return NextResponse.json({ error: "No nodes selected to run" }, { status: 400 });
     }
+
+    log.set({
+      auth: { userId },
+      workflow: {
+        scope: payload.scope,
+        totalNodeCount: payload.nodes.length,
+        activeNodeCount: activeNodes.length,
+        edgeCount: payload.edges.length,
+      },
+    });
 
     const allNodeMap = new Map(payload.nodes.map((node) => [node.id, node]));
     const outputTextMap = new Map<string, string>();
@@ -172,6 +189,14 @@ export async function POST(request: Request) {
     const nodeRunIds = workflowRun?.nodeRunIds ?? {};
     const levels = getTopologicalLevels(activeNodes, payload.edges);
     const results: ExecutionResult[] = [];
+
+    log.set({
+      workflow: {
+        scope: payload.scope,
+        workflowRunId: workflowRun?.workflowRunId ?? null,
+        levelCount: levels.length,
+      },
+    });
 
     for (const level of levels) {
       const levelResults = await Promise.all(
@@ -402,11 +427,23 @@ export async function POST(request: Request) {
       nodeStatuses: results.map((result) => result.status),
     });
 
+    log.set({
+      workflow: {
+        workflowRunId: workflowRun?.workflowRunId ?? null,
+        successCount: results.filter((result) => result.status === WorkflowRunStatus.SUCCESS)
+          .length,
+        failureCount: results.filter((result) => result.status === WorkflowRunStatus.FAILED)
+          .length,
+      },
+    });
+
     return NextResponse.json({
       workflowRunId: workflowRun?.workflowRunId ?? null,
       results,
     });
   } catch (error) {
+    log.error(error instanceof Error ? error : new Error("Unable to execute workflow"));
+
     return NextResponse.json(
       {
         error:
@@ -417,4 +454,4 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
-}
+});
