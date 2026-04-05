@@ -102,7 +102,7 @@ node --test --experimental-test-isolation=none .workflow-tests\tests\workflow-no
 ## Image uploading, Cropping and LL workflow 
 
 
-[https://www.loom.com/share/9aa3215a6c814841b131c54001aab38d](https://www.loom.com/share/9aa3215a6c814841b131c54001aab38d)
+[Loom Video](https://www.loom.com/share/9aa3215a6c814841b131c54001aab38d)
 
 
 
