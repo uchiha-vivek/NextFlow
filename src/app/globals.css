@@ -2,8 +2,63 @@
 @import "../../node_modules/@xyflow/react/dist/style.css";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #111214;
+  --foreground: #f5f7fb;
+  --app-bg: #111214;
+  --page-bg: radial-gradient(circle at top, rgba(92, 140, 255, 0.12), transparent 36%), linear-gradient(180deg, #121316 0%, #0b0c0e 100%);
+  --surface-0: #0f1012;
+  --surface-1: rgba(17, 18, 21, 0.96);
+  --surface-2: rgba(255, 255, 255, 0.03);
+  --surface-3: rgba(255, 255, 255, 0.06);
+  --surface-4: rgba(0, 0, 0, 0.2);
+  --surface-card: rgba(255, 255, 255, 0.04);
+  --surface-card-muted: rgba(255, 255, 255, 0.02);
+  --surface-input: rgba(0, 0, 0, 0.2);
+  --sidebar-bg: #000000;
+  --panel-bg: #171717;
+  --panel-muted: #101114;
+  --border-soft: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.12);
+  --text-primary: #ffffff;
+  --text-secondary: #d4d4d8;
+  --text-muted: #71717a;
+  --text-soft: #a1a1aa;
+  --canvas-bg: radial-gradient(circle at top, rgba(255, 255, 255, 0.06), transparent 20%), linear-gradient(180deg, #121212 0%, #0c0c0d 100%);
+  --canvas-dot: #24262d;
+  --shadow-elevated: 0 24px 70px rgba(0, 0, 0, 0.34);
+  --shadow-panel: 0 12px 30px rgba(0, 0, 0, 0.35);
+  --scrollbar-thumb: #5a5f6b;
+  --scrollbar-track: #111216;
+}
+
+:root[data-theme="light"] {
+  --background: #f5f3ef;
+  --foreground: #161616;
+  --app-bg: #f6f3ef;
+  --page-bg: radial-gradient(circle at top, rgba(117, 153, 217, 0.16), transparent 30%), linear-gradient(180deg, #faf8f5 0%, #f1ede8 100%);
+  --surface-0: #ffffff;
+  --surface-1: rgba(255, 255, 255, 0.94);
+  --surface-2: rgba(30, 41, 59, 0.04);
+  --surface-3: rgba(30, 41, 59, 0.08);
+  --surface-4: rgba(148, 163, 184, 0.12);
+  --surface-card: rgba(15, 23, 42, 0.12);
+  --surface-card-muted: rgba(255, 255, 255, 0.78);
+  --surface-input: rgba(15, 23, 42, 0.04);
+  --sidebar-bg: #f4f1ec;
+  --panel-bg: #fbfaf8;
+  --panel-muted: #f1ede8;
+  --border-soft: rgba(15, 23, 42, 0.08);
+  --border-strong: rgba(15, 23, 42, 0.14);
+  --text-primary: #171717;
+  --text-secondary: #3f3f46;
+  --text-muted: #71717a;
+  --text-soft: #52525b;
+  --canvas-bg: radial-gradient(circle at top, rgba(117, 153, 217, 0.12), transparent 22%), linear-gradient(180deg, #faf8f5 0%, #f3efea 100%);
+  --canvas-dot: #d7d1c7;
+  --shadow-elevated: 0 24px 70px rgba(15, 23, 42, 0.08);
+  --shadow-panel: 0 12px 30px rgba(15, 23, 42, 0.08);
+  --scrollbar-thumb: #b6b0a6;
+  --scrollbar-track: #ebe6df;
 }
 
 @theme inline {
@@ -13,23 +68,20 @@
   --font-mono: "Consolas", "SFMono-Regular", monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: "Suisse Intl", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
-html,
-body,
 button,
 input,
 textarea,
 select,
 [role="button"] {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: "Suisse Intl", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: inherit;
+  font-family: inherit;
 }
 
 * {
@@ -135,7 +187,7 @@ a {
 
 .sidebar-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: #5a5f6b #111216;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 }
 
 .sidebar-scrollbar::-webkit-scrollbar {
@@ -143,17 +195,17 @@ a {
 }
 
 .sidebar-scrollbar::-webkit-scrollbar-track {
-  background: #111216;
+  background: var(--scrollbar-track);
 }
 
 .sidebar-scrollbar::-webkit-scrollbar-thumb {
-  background: #5a5f6b;
+  background: var(--scrollbar-thumb);
   border-radius: 999px;
-  border: 2px solid #111216;
+  border: 2px solid var(--scrollbar-track);
 }
 
 .sidebar-scrollbar::-webkit-scrollbar-corner {
-  background: #111216;
+  background: var(--scrollbar-track);
 }
 
 .hero-banner {

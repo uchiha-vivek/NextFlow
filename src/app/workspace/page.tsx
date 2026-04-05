@@ -143,7 +143,7 @@ export default function WorkspacePage() {
 
   return (
     <WorkflowBuilderProvider value={{ addNode, request, historyVersion, refreshHistory }}>
-      <main className="h-screen overflow-hidden bg-[#212121] text-white">
+      <main className="h-screen overflow-hidden bg-[var(--app-bg)] text-[var(--text-primary)]">
         <AppShell
           onQuickAddNode={addNode}
           rightSidebar={workflowStarted ? <WorkflowHistorySidebar /> : undefined}

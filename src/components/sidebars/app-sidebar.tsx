@@ -30,6 +30,8 @@ import {
   Code2,
   X,
 } from "lucide-react";
+import { ThemeToggle, } from "@/components/theme/theme-toggle";
+import { useTheme } from "@/components/theme/theme-provider";
 import type { WorkflowNodeKind } from "@/components/workflow/workflow-builder-context";
 
 const primaryItems = [
@@ -125,14 +127,18 @@ function SidebarButton({
   iconWrapperClassName,
   transparentActive,
 }: SidebarButtonProps) {
+  const { theme } = useTheme();
+  const isLight = theme === "light";
   const classes = [
     "flex w-full items-center text-left text-[15px] font-medium tracking-[-0.028em] transition-colors",
     collapsed ? "h-9 justify-center px-0 rounded-xl" : "h-10 gap-3 rounded-[14px] px-4",
     active
       ? transparentActive
-        ? "bg-transparent text-white shadow-none"
-        : "bg-[#2f2f2f] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
-      : "text-zinc-100 hover:bg-white/[0.04]",
+        ? "bg-transparent text-[var(--text-primary)] shadow-none"
+        : isLight
+          ? "bg-[var(--surface-3)] text-[var(--text-primary)]"
+          : "bg-[#2f2f2f] text-[var(--text-primary)] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
+      : "text-[var(--text-secondary)] hover:bg-[var(--surface-2)] hover:text-[var(--text-primary)]",
   ].join(" ");
 
   const content = (
@@ -142,8 +148,10 @@ function SidebarButton({
           "flex shrink-0 items-center justify-center",
           collapsed ? "h-5 w-5 rounded-md" : "h-6 w-6 rounded-[7px]",
           active
-            ? "bg-white text-black"
-            : iconWrapperClassName ?? iconClassName ?? "text-white/90",
+            ? isLight
+              ? "bg-[#171717] text-white"
+              : "bg-white text-black"
+            : iconWrapperClassName ?? iconClassName ?? "text-[var(--text-primary)]/90",
         ].join(" ")}
       >
         <Icon
@@ -419,25 +427,28 @@ export function AppSidebar({
     <>
       <aside
         className={[
-          "relative flex h-full min-h-screen w-full min-w-0 flex-col bg-black py-5 text-white xl:sticky xl:top-0 xl:h-screen xl:min-h-0 xl:overflow-hidden",
+          "relative flex h-full min-h-screen w-full min-w-0 flex-col bg-[var(--sidebar-bg)] py-5 text-[var(--text-primary)] xl:sticky xl:top-0 xl:h-screen xl:min-h-0 xl:overflow-hidden",
           collapsed ? "px-1.5" : "px-3",
         ].join(" ")}
       >
         <div
           className={[
-            "flex h-11 items-center text-zinc-400",
+            "flex h-11 items-center text-[var(--text-muted)]",
             collapsed ? "justify-center px-0" : "justify-start px-4",
           ].join(" ")}
         >
-          <button
-            type="button"
-            onClick={onToggleCollapsed}
-            className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.06] bg-white/[0.03] text-zinc-400 transition-colors hover:bg-white/[0.08] hover:text-white"
-            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          >
-            <PanelsTopLeft className="h-4 w-4" strokeWidth={1.8} />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onToggleCollapsed}
+              className="flex h-8 w-8 items-center justify-center rounded-lg border border-[color:var(--border-soft)] bg-[var(--surface-2)] text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-3)] hover:text-[var(--text-primary)]"
+              aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+              title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              <PanelsTopLeft className="h-4 w-4" strokeWidth={1.8} />
+            </button>
+            {!collapsed ? <ThemeToggle className="h-8 w-8 rounded-lg shadow-none" /> : null}
+          </div>
         </div>
 
         <div className="mt-5 flex min-h-0 flex-1 flex-col">
@@ -473,7 +484,7 @@ export function AppSidebar({
 
           <div className="sidebar-scrollbar mt-10 min-h-0 flex-1 overflow-y-auto pr-1">
             {!collapsed ? (
-              <div className="px-4 text-[13px] font-medium tracking-[-0.02em] text-zinc-500">
+              <div className="px-4 text-[13px] font-medium tracking-[-0.02em] text-[var(--text-muted)]">
                 Tools
               </div>
             ) : null}
@@ -485,7 +496,7 @@ export function AppSidebar({
                   type="button"
                   onClick={() => onQuickAddNode?.(kind)}
                   className={[
-                    "w-full transition-colors hover:bg-white/[0.05]",
+                    "w-full transition-colors hover:bg-[var(--surface-2)]",
                     collapsed
                       ? "flex h-9 items-center justify-center rounded-xl"
                       : "flex items-center gap-3 rounded-[16px] px-3 py-2 text-left",
@@ -501,7 +512,7 @@ export function AppSidebar({
                     <Icon className={collapsed ? "h-3.5 w-3.5" : "h-4 w-4"} strokeWidth={2.1} />
                   </span>
                   {!collapsed ? (
-                    <span className="text-[14px] font-semibold tracking-[-0.03em] text-zinc-100">
+                    <span className="text-[14px] font-semibold tracking-[-0.03em] text-[var(--text-primary)]">
                       {label}
                     </span>
                   ) : null}
@@ -510,7 +521,7 @@ export function AppSidebar({
             </div>
           </div>
 
-          <div className="relative mt-4 border-t border-white/[0.06] pt-4" ref={accountMenuRef}>
+          <div className="relative mt-4 border-t border-[color:var(--border-soft)] pt-4" ref={accountMenuRef}>
             <Show when="signed-out">
               {collapsed ? (
                 <button
